@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   Rosterly – Neo-Brutalist Design System
+   Hard shadows, 3px black borders, vibrant palette, 8px grid.
+   ============================================================================= */
+
+:root {
+  /* Workspace */
+  --app-bg: #f3f4f6;
+  --card-bg: #ffffff;
+  --ink: #000000;
+  --muted: #374151;
+
+  /* Neo-Brutalist physics */
+  --brutal-border: 3px solid #000000;
+  --brutal-shadow: 6px 6px 0px 0px #000000;
+
+  /* Palette – high saturation, text on color = black */
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --success: #fde047;
+  --success-foreground: #000000;
+  --urgency: #f97316;
+  --urgency-foreground: #000000;
+  --accent-pink: #ec4899;
+  --accent-teal: #06b6d4;
+  --accent-lime: #84cc16;
+  --accent-pink-fg: #000000;
+  --accent-teal-fg: #000000;
+  --accent-lime-fg: #000000;
+
+  /* Sidebar */
+  --sidebar-bg: #1f2937;
+  --sidebar-text: #e5e7eb;
+  --sidebar-active-bg: #84cc16;
+  --sidebar-active-border: 2px solid #000000;
+  --sidebar-active-fg: #000000;
+
+  /* SOS / danger */
+  --sos: #dc2626;
+  --sos-fg: #ffffff;
+
+  /* Progress ring */
+  --ring-track: #e5e7eb;
+  --ring-fill: #000000;
+
+  /* 8px grid spacing */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+
+  --background: var(--app-bg);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: #f3f4f6;
+  --color-foreground: #000000;
+  --color-ink: #000000;
+  --color-muted: #374151;
+  --color-primary: #1d4ed8;
+  --color-success: #fde047;
+  --color-urgency: #f97316;
+  --color-accent-pink: #ec4899;
+  --color-accent-teal: #06b6d4;
+  --color-accent-lime: #84cc16;
+  --color-sos: #dc2626;
+  --color-sidebar: #1f2937;
+  --color-card: #ffffff;
+  --color-border: #000000;
+  --font-sans: var(--font-geist-sans), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+}
+
+/* Hard shadow utility – use on cards, buttons, containers */
+.brutal-shadow {
+  box-shadow: var(--brutal-shadow);
+}
+
+/* Press effect for clickables – native-speed, hardware-accelerated */
+.brutal-press {
+  will-change: transform;
+  transition: transform 75ms ease-out, box-shadow 75ms ease-out;
+}
+.brutal-press:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+/* Fluid responsive headings */
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+@media (min-width: 768px) {
+  .page-title {
+    font-size: 2.25rem;
+  }
+}
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+@media (min-width: 768px) {
+  .section-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Form inputs – 3px black border, max 4px radius */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+textarea {
+  border: var(--brutal-border);
+  border-radius: 4px;
+  box-shadow: var(--brutal-shadow);
+  padding: 12px 16px;
+  min-height: 48px;
+}
+input:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: var(--brutal-shadow), 0 0 0 2px #1d4ed8;
+}
