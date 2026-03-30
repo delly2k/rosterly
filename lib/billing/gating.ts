@@ -2,9 +2,9 @@ import { createClient } from "@/lib/auth";
 import { getMerchantSubscription } from "./service";
 import { getTierLimits } from "./tierConfig";
 import type { TierName } from "./types";
+import { PLAN_LIMIT_REACHED } from "./planLimitCodes";
 
-/** Error code returned when plan limit is reached (e.g. max active gigs). */
-export const PLAN_LIMIT_REACHED = "PLAN_LIMIT_REACHED";
+export { PLAN_LIMIT_REACHED };
 
 export type UsageSummary = {
   tier: TierName;

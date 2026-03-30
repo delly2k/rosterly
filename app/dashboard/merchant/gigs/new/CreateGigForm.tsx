@@ -13,7 +13,7 @@ import {
   LEGAL_ACKNOWLEDGMENT_REQUIRED_MESSAGE,
 } from "@/components/legal/LegalAcknowledgmentModal";
 import { UpgradePlanModal } from "@/components/billing/UpgradePlanModal";
-import { PLAN_LIMIT_REACHED } from "@/lib/billing/gating";
+import { PLAN_LIMIT_REACHED } from "@/lib/billing/planLimitCodes";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
