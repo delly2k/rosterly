@@ -1,4 +1,5 @@
-@import "tailwindcss";
+/* Resolve from app/ → Rosterly/node_modules (bare "tailwindcss" can break when a parent folder is treated as workspace root). */
+@import "../node_modules/tailwindcss/index.css";
 
 /* =============================================================================
    Rosterly – Neo-Brutalist Design System
