@@ -32,7 +32,7 @@ export default async function MerchantChatPage({
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard/merchant/chats"
-          className="text-sm font-bold text-black underline underline-offset-2 hover:no-underline"
+          className="text-sm font-bold text-[var(--color-ink)] underline underline-offset-2 hover:no-underline"
         >
           ← Chats
         </Link>

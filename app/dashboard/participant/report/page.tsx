@@ -11,7 +11,7 @@ export default async function ParticipantReportPage() {
         <h1 className="page-title tracking-tight">
           Submit a report
         </h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
           Describe the issue. Reports are reviewed by admins. Do not use for
           emergencies—call local emergency services.
         </p>

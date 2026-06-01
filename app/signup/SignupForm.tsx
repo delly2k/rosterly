@@ -1,21 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Eye,
-  EyeOff,
-  UserRound,
-  Briefcase,
-  ChevronRight,
-  ArrowLeftRight,
-} from "lucide-react";
-import { signUpWithAutoConfirm } from "@/app/signup/actions";
-import { Button } from "@/components/ui/Button";
-import { CardTitle, CardDescription } from "@/components/ui/Card";
+import { Eye, EyeOff } from "lucide-react";
+import { signUpMerchant, signUpParticipant } from "@/app/signup/actions";
+import { signInWithPassword } from "@/app/login/actions";
+import { getDashboardPathForRole } from "@/lib/dashboard";
 
 const PASSWORD_MIN_LENGTH = 8;
 
@@ -63,20 +55,16 @@ type FormData = z.infer<typeof schema>;
 const AUTH_ERROR_MESSAGE =
   "Something went wrong. Please try again or use a different email.";
 
-const inputClass =
-  "w-full rounded-[4px] border-2 border-black bg-white px-4 py-2 text-sm text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-2 focus:ring-[#1D4ED8]";
+const ROLE_LABELS = [
+  { label: "Participant", value: "participant" as const },
+  { label: "Merchant", value: "merchant" as const },
+];
 
-const fieldLabelClass = "mb-1 block text-xs text-gray-600";
-
-const roleCardClass =
-  "flex w-full cursor-pointer items-center gap-3 rounded-[4px] border-2 border-black bg-white px-4 py-[14px] text-left transition-colors hover:bg-[#f5f5f5] focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:ring-offset-2";
+const inputClass = "input-refined w-full text-sm text-[var(--color-ink)]";
+const passwordInputClass = `${inputClass} !pr-11`;
 
 export function SignupForm() {
-  const router = useRouter();
-  /** Step 1: null. Step 2: chosen role. */
-  const [role, setRole] = useState<"participant" | "merchant" | null>(null);
   const [genericError, setGenericError] = useState<string | null>(null);
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -85,7 +73,6 @@ export function SignupForm() {
     handleSubmit,
     watch,
     setValue,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -106,244 +93,179 @@ export function SignupForm() {
     lowercase: hasLowercase(passwordValue),
     number: hasNumber(passwordValue),
   };
+  const metCount = [
+    requirements.length,
+    requirements.uppercase,
+    requirements.lowercase,
+    requirements.number,
+  ].filter(Boolean).length;
 
-  function goBack() {
-    setRole(null);
-    setGenericError(null);
-    reset({
-      role: "participant",
-      businessName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    });
-  }
-
-  function selectParticipant() {
-    setRole("participant");
-    setValue("role", "participant", { shouldValidate: false });
-    setValue("businessName", "");
-  }
-
-  function selectMerchant() {
-    setRole("merchant");
-    setValue("role", "merchant", { shouldValidate: false });
+  function selectRole(role: "participant" | "merchant") {
+    setValue("role", role, { shouldValidate: false });
+    if (role === "participant") {
+      setValue("businessName", "");
+    }
   }
 
   async function onSubmit(data: FormData) {
     setGenericError(null);
     try {
       if (data.role === "participant") {
-        await signUpWithAutoConfirm(data.email, data.password);
+        await signUpParticipant(data.email, data.password);
       } else {
-        // TODO: Replace with signUpMerchant once migration is applied
-        await signUpWithAutoConfirm(data.email, data.password, {
-          requested_role: "merchant",
-          business_name: (data.businessName ?? "").trim(),
-        });
+        await signUpMerchant(
+          data.email,
+          data.password,
+          (data.businessName ?? "").trim()
+        );
       }
-      router.push("/login?message=registered");
-      router.refresh();
+
+      const signInResult = await signInWithPassword(
+        data.email,
+        data.password,
+        getDashboardPathForRole(data.role)
+      );
+      if (signInResult && !signInResult.ok) {
+        throw new Error(signInResult.error);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : AUTH_ERROR_MESSAGE;
       setGenericError(message);
     }
   }
 
-  if (role === null) {
-    return (
-      <div className="flex flex-col gap-2">
-        <button type="button" onClick={selectParticipant} className={roleCardClass}>
-          <UserRound className="h-6 w-6 shrink-0 text-black" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium text-black">I&apos;m looking for gigs</div>
-            <div className="mt-0.5 text-xs text-gray-600">Browse and apply for opportunities</div>
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-black" aria-hidden />
-        </button>
-        <button type="button" onClick={selectMerchant} className={roleCardClass}>
-          <Briefcase className="h-6 w-6 shrink-0 text-black" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-black">
-              I&apos;m hiring
-              <span className="rounded-[4px] border-[1.5px] border-black bg-transparent px-[6px] py-[1px] text-[10px] font-bold uppercase leading-none text-black">
-                MERCHANT
-              </span>
-            </div>
-            <div className="mt-0.5 text-xs text-gray-600">Post gigs and manage your team</div>
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-black" aria-hidden />
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <button
-        type="button"
-        onClick={goBack}
-        className="mb-4 flex w-full items-center justify-between gap-2 rounded-[4px] bg-black px-[10px] py-1 text-left text-xs font-medium text-white hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:ring-offset-2"
-      >
-        <span>
-          {formRole === "merchant" ? "Hiring · Merchant" : "Looking for gigs"}
-        </span>
-        <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      </button>
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input type="hidden" {...register("role")} />
 
-      <div className="text-center">
-        <CardTitle className="text-2xl">
-          {formRole === "merchant" ? "Create a merchant account" : "Create an account"}
-        </CardTitle>
-        <CardDescription className="mt-1">
-          {formRole === "merchant"
-            ? "Sign up with your business email."
-            : "Sign up with your email and a password."}
-        </CardDescription>
+      {genericError && (
+        <div className="login-auth-banner login-auth-banner--error" role="alert">
+          {genericError}
+        </div>
+      )}
+
+      <div className="login-role-toggle" role="group" aria-label="Account type">
+        {ROLE_LABELS.map(({ label, value }) => (
+          <button
+            key={value}
+            type="button"
+            className={`login-role-btn${formRole === value ? " is-active" : ""}`}
+            onClick={() => selectRole(value)}
+            aria-pressed={formRole === value}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
-        <input type="hidden" {...register("role")} />
-
-        {genericError && (
-          <div
-            className="rounded-[4px] border-[3px] border-black bg-[#F97316] px-4 py-3 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-            role="alert"
-          >
-            {genericError}
-          </div>
-        )}
-
-        {formRole === "merchant" && (
-          <div>
-            <label htmlFor="signup-business-name" className={fieldLabelClass}>
-              Business name
-            </label>
-            <input
-              id="signup-business-name"
-              type="text"
-              autoComplete="organization"
-              className={inputClass}
-              {...register("businessName")}
-            />
-            {errors.businessName && (
-              <p className="mt-2 text-sm font-medium text-black">{errors.businessName.message}</p>
-            )}
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="signup-email" className={fieldLabelClass}>
-            Email
-          </label>
+      {formRole === "merchant" && (
+        <div className="login-auth-field">
           <input
-            id="signup-email"
-            type="email"
-            autoComplete="email"
+            id="signup-business-name"
+            type="text"
+            autoComplete="organization"
+            placeholder="Business name"
             className={inputClass}
-            {...register("email")}
+            aria-invalid={!!errors.businessName}
+            {...register("businessName")}
           />
-          {errors.email && (
-            <p className="mt-2 text-sm font-medium text-black">{errors.email.message}</p>
+          {errors.businessName && (
+            <p className="login-auth-field-error">{errors.businessName.message}</p>
           )}
         </div>
-        <div>
-          <label htmlFor="signup-password" className={fieldLabelClass}>
-            Password
-          </label>
-          <div className="relative">
-            <input
-              id="signup-password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              className={`${inputClass} pr-12`}
-              {...register("password")}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-black/60 hover:text-black focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:ring-offset-2"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" aria-hidden />
-              ) : (
-                <Eye className="h-5 w-5" aria-hidden />
+      )}
+
+      <div className="login-auth-field">
+        <input
+          id="signup-email"
+          type="email"
+          autoComplete="email"
+          placeholder="Email address"
+          className="login-auth-input"
+          aria-invalid={!!errors.email}
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="login-auth-field-error">{errors.email.message}</p>
+        )}
+      </div>
+
+      <div className="login-auth-field">
+        <div className="login-auth-password-wrap">
+          <input
+            id="signup-password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="Password"
+            className={passwordInputClass}
+            aria-invalid={!!errors.password}
+            {...register("password")}
+          />
+          <button
+            type="button"
+            className="login-auth-password-toggle"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+        {passwordValue.length > 0 && (
+          <div className="signup-password-strength" aria-live="polite" aria-label="Password strength">
+            <div className="signup-password-bars">
+              {[requirements.length, requirements.uppercase, requirements.lowercase, requirements.number].map(
+                (met, i) => (
+                  <span
+                    key={i}
+                    className={`signup-password-bar${met ? " is-met" : ""}`}
+                  />
+                )
               )}
-            </button>
-          </div>
-          {passwordValue.length > 0 && (
-            <div className="mt-2 flex items-center gap-2" aria-live="polite" aria-label="Password strength">
-              <div className="flex gap-0.5">
-                {[requirements.length, requirements.uppercase, requirements.lowercase, requirements.number].map(
-                  (met, i) => (
-                    <span
-                      key={i}
-                      className={`h-1 min-w-[20px] flex-1 rounded-sm transition-colors ${met ? "bg-green-600" : "bg-black/20"}`}
-                    />
-                  )
-                )}
-              </div>
-              <span className="text-xs text-black/70">
-                {[requirements.length, requirements.uppercase, requirements.lowercase, requirements.number].filter(
-                  Boolean
-                ).length === 4
-                  ? "Strong"
-                  : [requirements.length, requirements.uppercase, requirements.lowercase, requirements.number].filter(
-                        Boolean
-                      ).length >= 2
-                    ? "Fair"
-                    : "Weak"}
-              </span>
             </div>
-          )}
-          {errors.password && (
-            <p className="mt-2 text-sm font-medium text-black">{errors.password.message}</p>
-          )}
-        </div>
-        <div>
-          <label htmlFor="signup-confirm" className={fieldLabelClass}>
-            Confirm password
-          </label>
-          <div className="relative">
-            <input
-              id="signup-confirm"
-              type={showConfirmPassword ? "text" : "password"}
-              autoComplete="new-password"
-              className={`${inputClass} pr-12`}
-              {...register("confirmPassword")}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-black/60 hover:text-black focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:ring-offset-2"
-              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-            >
-              {showConfirmPassword ? (
-                <EyeOff className="h-5 w-5" aria-hidden />
-              ) : (
-                <Eye className="h-5 w-5" aria-hidden />
-              )}
-            </button>
+            <span className="signup-password-label">
+              {metCount === 4 ? "Strong" : metCount >= 2 ? "Fair" : "Weak"}
+            </span>
           </div>
-          {errors.confirmPassword && (
-            <p className="mt-2 text-sm font-medium text-black">{errors.confirmPassword.message}</p>
-          )}
+        )}
+        {errors.password && (
+          <p className="login-auth-field-error">{errors.password.message}</p>
+        )}
+      </div>
+
+      <div className="login-auth-field">
+        <div className="login-auth-password-wrap">
+          <input
+            id="signup-confirm"
+            type={showConfirmPassword ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="Confirm password"
+            className={passwordInputClass}
+            aria-invalid={!!errors.confirmPassword}
+            {...register("confirmPassword")}
+          />
+          <button
+            type="button"
+            className="login-auth-password-toggle"
+            onClick={() => setShowConfirmPassword((v) => !v)}
+            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+            tabIndex={-1}
+          >
+            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
         </div>
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          variant="primary"
-          size="md"
-          className="w-full !h-auto min-h-0 py-2.5 text-sm"
-        >
-          {isSubmitting
-            ? "Creating account…"
-            : formRole === "merchant"
-              ? "Create merchant account"
-              : "Sign up"}
-        </Button>
-      </form>
-    </>
+        {errors.confirmPassword && (
+          <p className="login-auth-field-error">{errors.confirmPassword.message}</p>
+        )}
+      </div>
+
+      <button type="submit" className="login-auth-submit" disabled={isSubmitting}>
+        {isSubmitting
+          ? "Creating account…"
+          : formRole === "merchant"
+            ? "Create merchant account"
+            : "Create account"}
+      </button>
+    </form>
   );
 }

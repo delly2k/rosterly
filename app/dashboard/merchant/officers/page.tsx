@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import {
@@ -6,7 +5,9 @@ import {
   getMerchantVerificationStatus,
   getMerchantOfficers,
 } from "@/app/dashboard/merchant/actions";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { MerchantOfficersClient } from "./MerchantOfficersClient";
+import { Users } from "lucide-react";
 
 export default async function MerchantOfficersPage() {
   await requireRole(ROLES.MERCHANT);
@@ -24,21 +25,12 @@ export default async function MerchantOfficersPage() {
     : null;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <h1 className="page-title tracking-tight">Responsible officers</h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Add authorised officers and submit verification. Complete your{" "}
-          <Link
-            href="/dashboard/merchant/profile"
-            className="font-medium text-zinc-900 underline dark:text-zinc-100"
-          >
-            Profile
-          </Link>{" "}
-          (business name and type) and add at least one officer to unlock
-          verification.
-        </p>
-      </div>
+    <div className="page-bg space-y-8" style={{ padding: "32px 40px" }}>
+      <PageHeader
+        icon={Users}
+        title="Responsible officers"
+        description="Add authorised officers and submit verification. Complete your business profile and add at least one officer to unlock verification."
+      />
 
       <MerchantOfficersClient
         profile={profileForVerify}

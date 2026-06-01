@@ -110,7 +110,7 @@ export function BookingCardActions({
           onClose={() => setShowLegalModal(false)}
         />
         {error && (
-          <p className="text-right text-xs text-red-600 dark:text-red-400" role="alert">
+          <p className="text-right text-xs text-red-600" role="alert">
             {error}
           </p>
         )}
@@ -118,7 +118,7 @@ export function BookingCardActions({
           type="button"
           onClick={handleAccept}
           disabled={acceptLoading}
-          className="min-h-[44px] rounded-md border-[2px] border-black bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-800 active:bg-zinc-800 disabled:opacity-50"
+          className="btn-portal-primary min-h-[44px] text-sm disabled:opacity-50"
         >
           {acceptLoading ? "Accepting…" : "Accept booking"}
         </button>
@@ -131,12 +131,12 @@ export function BookingCardActions({
     return (
       <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
         {error && (
-          <p className="text-right text-xs text-red-600 dark:text-red-400" role="alert">
+          <p className="text-right text-xs text-red-600" role="alert">
             {error}
           </p>
         )}
         {!withinWindow && windowText && (
-          <p className="text-right text-xs text-zinc-500 dark:text-zinc-400" title={windowText}>
+          <p className="text-right text-xs text-[#6B7280]" title={windowText}>
             Check-in available: 1 hr before start – 15 min after end
           </p>
         )}
@@ -155,14 +155,14 @@ export function BookingCardActions({
             onClick={() => handleCheck("out")}
             disabled={!canCheckOut || !!checkinLoading || !withinWindow}
             title={!withinWindow && windowText ? windowText : undefined}
-            className="min-h-[44px] rounded-md border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 active:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:active:bg-zinc-700"
+            className="min-h-[44px] rounded-md border border-[#E5E3DC] bg-white px-4 py-3 text-sm font-medium text-[var(--color-ink-muted)] hover:bg-zinc-50 active:bg-zinc-50 disabled:opacity-50"
           >
             {checkinLoading === "out" ? "…" : "Check out"}
           </button>
         </div>
         <Link
           href={`/dashboard/participant/bookings/${bookingId}`}
-          className="inline-flex min-h-[44px] items-center text-xs font-medium text-black underline underline-offset-2 hover:no-underline active:no-underline sm:justify-end"
+          className="inline-flex min-h-[44px] items-center text-xs font-medium text-[var(--color-ink)] underline underline-offset-2 hover:no-underline active:no-underline sm:justify-end"
         >
           View details
         </Link>
@@ -173,7 +173,7 @@ export function BookingCardActions({
   return (
     <Link
       href={`/dashboard/participant/bookings/${bookingId}`}
-      className="inline-flex min-h-[44px] items-center text-sm font-medium text-black underline underline-offset-2 hover:no-underline active:no-underline"
+      className="inline-flex min-h-[44px] items-center text-sm font-medium text-[var(--color-ink)] underline underline-offset-2 hover:no-underline active:no-underline"
     >
       View details
     </Link>

@@ -9,11 +9,25 @@ import { NotificationToggleRow } from "@/components/settings/NotificationToggleR
 import { updateNotificationSettings } from "../actions";
 
 const KEYS = {
-  newApplicants: "new_applicants",
-  bookingConfirmations: "booking_confirmations",
-  eventReminders: "event_reminders",
-  reportsIssues: "reports_issues",
+  newApplicants: "new_application",
+  bookingConfirmations: "participant_accepted",
+  eventReminders: "participant_checked_in",
+  reportsIssues: "merchant_rating_received",
 } as const;
+
+const LEGACY_KEYS: Record<string, string> = {
+  new_application: "new_applicants",
+  participant_accepted: "booking_confirmations",
+  participant_checked_in: "event_reminders",
+  merchant_rating_received: "reports_issues",
+};
+
+function readPref(settings: Record<string, boolean>, key: string): boolean {
+  if (settings[key] !== undefined) return settings[key];
+  const legacy = LEGACY_KEYS[key];
+  if (legacy && settings[legacy] !== undefined) return settings[legacy];
+  return true;
+}
 
 const TOAST_DURATION_MS = 3000;
 
@@ -24,10 +38,10 @@ export function NotificationsMerchantForm({
 }) {
   const router = useRouter();
   const [settings, setSettings] = useState({
-    [KEYS.newApplicants]: initialSettings[KEYS.newApplicants] ?? true,
-    [KEYS.bookingConfirmations]: initialSettings[KEYS.bookingConfirmations] ?? true,
-    [KEYS.eventReminders]: initialSettings[KEYS.eventReminders] ?? true,
-    [KEYS.reportsIssues]: initialSettings[KEYS.reportsIssues] ?? true,
+    [KEYS.newApplicants]: readPref(initialSettings, KEYS.newApplicants),
+    [KEYS.bookingConfirmations]: readPref(initialSettings, KEYS.bookingConfirmations),
+    [KEYS.eventReminders]: readPref(initialSettings, KEYS.eventReminders),
+    [KEYS.reportsIssues]: readPref(initialSettings, KEYS.reportsIssues),
   });
   const [toast, setToast] = useState<string | null>(null);
 
@@ -102,7 +116,7 @@ export function NotificationsMerchantForm({
 
       {toast && (
         <div
-          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--color-gold)] px-4 py-2 text-sm font-medium text-white shadow-lg"
           role="status"
           aria-live="polite"
         >

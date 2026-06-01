@@ -38,15 +38,16 @@ export default async function SettingsBillingPage() {
         title="Billing"
         subtitle="Manage your subscription and plan limits."
       >
-        <div className="rounded-[4px] border-[3px] border-black bg-amber-100 p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <p className="font-medium text-amber-900">Billing is not available yet.</p>
-          <p className="mt-2 text-sm text-amber-800">{billingError}</p>
-          <p className="mt-2 text-sm text-amber-800">
-            Run the Supabase migration that creates the <code className="rounded bg-amber-200 px-1">merchant_subscriptions</code> table, then refresh.
+        <div className="rounded-xl border border-[rgba(217,119,6,0.3)] bg-[var(--color-warning-light)] p-6">
+          <p className="font-medium text-[var(--color-warning)]">Billing is not available yet.</p>
+          <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{billingError}</p>
+          <p className="mt-2 text-sm text-[var(--color-ink-muted)]">
+            Run the Supabase migration that creates the{" "}
+            <code className="rounded bg-[var(--color-page)] px-1">merchant_subscriptions</code> table, then refresh.
           </p>
           <Link
             href="/dashboard/merchant"
-            className="mt-4 inline-block text-sm font-bold text-amber-900 underline hover:no-underline"
+            className="mt-4 inline-block text-sm font-medium text-[var(--color-gold)] underline hover:no-underline"
           >
             ← Back to dashboard
           </Link>

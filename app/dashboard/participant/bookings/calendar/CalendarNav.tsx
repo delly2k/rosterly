@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function CalendarNav({
   year,
@@ -20,26 +21,67 @@ export function CalendarNav({
     month: String(next.getMonth() + 1),
   });
 
+  const monthLabel = new Date(year, month - 1, 1).toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
+
   return (
-    <nav className="flex items-center justify-between gap-4">
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: "white",
+        border: "0.5px solid var(--color-border)",
+        borderRadius: "12px 12px 0 0",
+        padding: "14px 20px",
+        borderBottom: "none",
+      }}
+    >
       <Link
         href={`/dashboard/participant/bookings/calendar?${prevParams}`}
-        className="rounded-md border-[2px] border-black bg-white px-3 py-1.5 text-sm font-semibold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-100"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "7px 14px",
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 500,
+          border: "0.5px solid var(--color-border)",
+          background: "white",
+          color: "var(--color-ink)",
+          cursor: "pointer",
+          textDecoration: "none",
+        }}
       >
-        ← Previous
+        <ChevronLeft size={14} /> Previous
       </Link>
-      <span className="text-lg font-bold text-black">
-        {new Date(year, month - 1, 1).toLocaleString("default", {
-          month: "long",
-          year: "numeric",
-        })}
-      </span>
+
+      <div style={{ fontSize: 16, fontWeight: 600, color: "var(--color-ink)" }}>
+        {monthLabel}
+      </div>
+
       <Link
         href={`/dashboard/participant/bookings/calendar?${nextParams}`}
-        className="rounded-md border-[2px] border-black bg-white px-3 py-1.5 text-sm font-semibold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-100"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "7px 14px",
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 500,
+          border: "0.5px solid var(--color-border)",
+          background: "white",
+          color: "var(--color-ink)",
+          cursor: "pointer",
+          textDecoration: "none",
+        }}
       >
-        Next →
+        Next <ChevronRight size={14} />
       </Link>
-    </nav>
+    </div>
   );
 }

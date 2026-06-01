@@ -17,61 +17,44 @@ import {
 import type { MerchantDashboardData } from "@/app/dashboard/merchant/actions";
 import { UpgradePlanModal } from "@/components/billing/UpgradePlanModal";
 
+function gigStatusClass(status: string) {
+  if (status === "open") return "pill-green";
+  if (status === "draft") return "pill-gray";
+  if (status === "closed" || status === "filled") return "pill-gold";
+  if (status === "cancelled") return "pill-danger";
+  return "pill-gray";
+}
+
 function MetricCard({
   icon: Icon,
   label,
   value,
-  accent = "zinc",
+  tile = "gold",
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number | string;
-  accent?: "zinc" | "sky" | "amber" | "emerald";
+  tile?: "gold" | "green" | "warning" | "muted";
 }) {
-  const bg =
-    accent === "sky"
-      ? "bg-sky-50 dark:bg-sky-950/20"
-      : accent === "amber"
-        ? "bg-amber-50 dark:bg-amber-950/20"
-        : accent === "emerald"
-          ? "bg-emerald-50 dark:bg-emerald-950/20"
-          : "bg-zinc-50 dark:bg-zinc-800/30";
-  const iconBg =
-    accent === "sky"
-      ? "bg-sky-200 dark:bg-sky-800/60"
-      : accent === "amber"
-        ? "bg-amber-200 dark:bg-amber-800/60"
-        : accent === "emerald"
-          ? "bg-emerald-200 dark:bg-emerald-800/60"
-          : "bg-zinc-200 dark:bg-zinc-700";
-  const iconColor =
-    accent === "sky"
-      ? "text-sky-700 dark:text-sky-200"
-      : accent === "amber"
-        ? "text-amber-800 dark:text-amber-200"
-        : accent === "emerald"
-          ? "text-emerald-700 dark:text-emerald-200"
-          : "text-zinc-700 dark:text-zinc-300";
+  const tileClass =
+    tile === "green"
+      ? "bg-[var(--color-green-light)] text-[var(--color-green)]"
+      : tile === "warning"
+        ? "bg-[var(--color-warning-light)] text-[var(--color-warning)]"
+        : tile === "muted"
+          ? "bg-[#F9F8F5] text-[var(--color-ink-muted)]"
+          : "bg-[var(--color-gold-light)] text-[var(--color-gold)]";
+
   return (
-    <div
-      className={`flex h-full min-h-[88px] items-center gap-4 rounded-xl border-2 p-4 shadow-sm ${bg} ${
-        accent === "sky"
-          ? "border-sky-200 dark:border-sky-800/60"
-          : accent === "amber"
-            ? "border-amber-200 dark:border-amber-800/60"
-            : accent === "emerald"
-              ? "border-emerald-200 dark:border-emerald-800/60"
-              : "border-zinc-200/80 dark:border-zinc-700/80"
-      }`}
-    >
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
-        <Icon className={`h-5 w-5 ${iconColor}`} />
+    <div className="surface-card flex h-full min-h-[88px] flex-col p-4">
+      <div
+        className={`mb-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tileClass}`}
+      >
+        <Icon className="h-[18px] w-[18px]" aria-hidden />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400 line-clamp-2">
-          {label}
-        </p>
-        <p className="mt-0.5 text-xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+        <p className="stat-label line-clamp-2">{label}</p>
+        <p className="mt-0.5 text-xl font-semibold tabular-nums text-[var(--color-ink)]">
           {value}
         </p>
       </div>
@@ -130,23 +113,17 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
 
   return (
     <div className="space-y-8">
-      {/* Section 1 — Snapshot metrics */}
       <section>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-4 gap-5">
           <div className="min-w-0 h-full">
-            <MetricCard
-              icon={Briefcase}
-              label="Active gigs"
-              value={data.activeGigsCount}
-              accent="sky"
-            />
+            <MetricCard icon={Briefcase} label="Active gigs" value={data.activeGigsCount} tile="gold" />
           </div>
           <div className="min-w-0 h-full">
             <MetricCard
               icon={Users}
               label="Applicants awaiting review"
               value={data.applicantsAwaitingReview}
-              accent="amber"
+              tile="warning"
             />
           </div>
           <div className="min-w-0 h-full">
@@ -154,7 +131,7 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
               icon={UserCheck}
               label="Confirmed this week"
               value={data.confirmedThisWeek}
-              accent="emerald"
+              tile="green"
             />
           </div>
           <div className="min-w-0 h-full">
@@ -162,30 +139,27 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
               icon={AlertCircle}
               label="Action required"
               value={actionRequired}
-              accent={actionRequired > 0 ? "amber" : "zinc"}
+              tile={actionRequired > 0 ? "warning" : "muted"}
             />
           </div>
         </div>
       </section>
 
-      {/* Billing widget — always show for merchants so they can find subscribe / manage plan */}
       <section>
-        <div className="rounded-xl border-2 border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/30 sm:p-5">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-200 dark:bg-zinc-700">
-              <CreditCard className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
+        <div className="surface-card p-4 sm:p-5">
+          <h2 className="portal-section-title flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-gold-light)]">
+              <CreditCard className="h-4 w-4 text-[var(--color-gold)]" />
             </span>
             Billing
           </h2>
           {usage ? (
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-              <span className="font-medium capitalize text-zinc-900 dark:text-zinc-100">
+              <span className="font-medium capitalize text-[var(--color-ink)]">
                 {usage.tier}
               </span>
-              <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-600 dark:text-zinc-200">
-                {usage.status}
-              </span>
-              <span className="text-zinc-600 dark:text-zinc-400">
+              <span className="pill-gray">{usage.status}</span>
+              <span className="text-[var(--color-ink-muted)]">
                 Usage:{" "}
                 {usage.maxActiveGigs != null
                   ? `${usage.activeGigs} / ${usage.maxActiveGigs} active gigs`
@@ -193,17 +167,17 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
               </span>
               <Link
                 href="/dashboard/settings/billing"
-                className="text-sm font-medium text-[#1D4ED8] hover:underline"
+                className="text-sm font-medium text-[var(--color-gold)] hover:underline"
               >
                 Manage billing →
               </Link>
             </div>
           ) : (
-            <div className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+            <div className="mt-3 text-sm text-[var(--color-ink-muted)]">
               <p>Manage your subscription and plan limits.</p>
               <Link
                 href="/dashboard/settings/billing"
-                className="mt-2 inline-block font-medium text-[#1D4ED8] hover:underline"
+                className="mt-2 inline-block font-medium text-[var(--color-gold)] hover:underline"
               >
                 Go to Billing →
               </Link>
@@ -212,23 +186,22 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
         </div>
       </section>
 
-      {/* Section 2 — Today's operations */}
       <section>
-        <div className="rounded-xl border-2 border-sky-200 bg-white p-5 shadow-sm dark:border-sky-800/50 dark:bg-sky-950/10 sm:p-6">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-900/50">
-              <Calendar className="h-4 w-4 text-sky-700 dark:text-sky-300" />
+        <div className="surface-card p-5 sm:p-6">
+          <h2 className="portal-section-title flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-gold-light)]">
+              <Calendar className="h-4 w-4 text-[var(--color-gold)]" />
             </span>
             Today&apos;s gigs
           </h2>
           {data.todayGigs.length === 0 ? (
-            <div className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-10 text-center dark:border-zinc-700 dark:bg-zinc-800/30">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <div className="mt-6 rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-page)] py-10 text-center">
+              <p className="text-sm text-[var(--color-ink-muted)]">
                 No gigs scheduled for today.
               </p>
               <Link
                 href="/dashboard/merchant/gigs"
-                className="mt-3 inline-block text-sm font-medium text-[#1D4ED8] underline underline-offset-2 hover:no-underline"
+                className="mt-3 inline-block text-sm font-medium text-[var(--color-gold)] underline underline-offset-2 hover:no-underline"
               >
                 View all gigs
               </Link>
@@ -247,45 +220,33 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
                 return (
                   <li
                     key={gig.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-700/70 dark:bg-zinc-800/30"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-page)] p-4"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-[var(--color-ink-muted)]">
                         <Clock className="h-4 w-4" />
                         {start}
                       </span>
-                      <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                        {gig.title}
-                      </span>
+                      <span className="font-medium text-[var(--color-ink)]">{gig.title}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded-full bg-zinc-200 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-600 dark:text-zinc-200">
+                      <span className="pill-gray">
                         {gig.spots_filled ?? 0} / {gig.spots ?? 1} staff
                       </span>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="text-xs text-[var(--color-ink-muted)]">
                         Check-in: {checkedIn} / {required}
                       </span>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          gig.status === "filled"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200"
-                            : gig.status === "open"
-                              ? "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200"
-                              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
-                        }`}
-                      >
-                        {gig.status}
-                      </span>
+                      <span className={gigStatusClass(gig.status)}>{gig.status}</span>
                       <div className="flex gap-2">
                         <Link
                           href={`/dashboard/merchant/gigs/${gig.id}`}
-                          className="rounded-md bg-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-600 dark:text-zinc-100 dark:hover:bg-zinc-500"
+                          className="btn-portal-secondary px-3 py-1.5 text-xs"
                         >
                           View team
                         </Link>
                         <Link
                           href="/dashboard/merchant/chats"
-                          className="rounded-md bg-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-600 dark:text-zinc-100 dark:hover:bg-zinc-500"
+                          className="btn-portal-secondary px-3 py-1.5 text-xs"
                         >
                           Chats
                         </Link>
@@ -299,34 +260,27 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
         </div>
       </section>
 
-      {/* Section 3 — Hiring pipeline (2-column) */}
       <section className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-5 shadow-sm dark:border-amber-800/50 dark:bg-amber-950/20 sm:p-6">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-200 dark:bg-amber-800/50">
-              <Users className="h-4 w-4 text-amber-800 dark:text-amber-200" />
+        <div className="surface-card p-5 sm:p-6">
+          <h2 className="portal-section-title flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-gold-light)]">
+              <Users className="h-4 w-4 text-[var(--color-gold)]" />
             </span>
             New applicants needing review
           </h2>
           {data.pendingApplicationsByGig.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-              No pending applications.
-            </p>
+            <p className="mt-3 text-sm text-[var(--color-ink-muted)]">No pending applications.</p>
           ) : (
             <ul className="mt-4 space-y-2">
               {data.pendingApplicationsByGig.slice(0, 3).map((item) => (
                 <li key={item.gigId}>
                   <Link
                     href={`/dashboard/merchant/gigs/${item.gigId}`}
-                    className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-page)]"
                   >
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                      {item.gigTitle}
-                    </span>
-                    <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
-                        {item.count} pending
-                      </span>
+                    <span className="font-medium text-[var(--color-ink)]">{item.gigTitle}</span>
+                    <span className="flex items-center gap-1 text-[var(--color-ink-muted)]">
+                      <span className="pill-warning">{item.count} pending</span>
                       <ChevronRight className="h-4 w-4" />
                     </span>
                   </Link>
@@ -337,7 +291,7 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
           {data.applicantsAwaitingReview > 0 && (
             <Link
               href="/dashboard/merchant/gigs"
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#1D4ED8] hover:underline"
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--color-gold)] hover:underline"
             >
               Review applicants
               <ChevronRight className="h-4 w-4" />
@@ -345,15 +299,15 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
           )}
         </div>
 
-        <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 p-5 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-950/20 sm:p-6">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-200 dark:bg-emerald-800/50">
-              <Briefcase className="h-4 w-4 text-emerald-800 dark:text-emerald-200" />
+        <div className="surface-card p-5 sm:p-6">
+          <h2 className="portal-section-title flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-gold-light)]">
+              <Briefcase className="h-4 w-4 text-[var(--color-gold)]" />
             </span>
             Upcoming gigs missing staff
           </h2>
           {missingStaff.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-3 text-sm text-[var(--color-ink-muted)]">
               All upcoming gigs are fully staffed.
             </p>
           ) : (
@@ -362,13 +316,12 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
                 <li key={g.id}>
                   <Link
                     href={`/dashboard/merchant/gigs/${g.id}`}
-                    className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-page)]"
                   >
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                      {g.title}
-                    </span>
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
-                      {g.spots - g.spots_filled} spot{g.spots - g.spots_filled !== 1 ? "s" : ""} left
+                    <span className="font-medium text-[var(--color-ink)]">{g.title}</span>
+                    <span className="pill-warning">
+                      {g.spots - g.spots_filled} spot{g.spots - g.spots_filled !== 1 ? "s" : ""}{" "}
+                      left
                     </span>
                   </Link>
                 </li>
@@ -377,7 +330,7 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
           )}
           <Link
             href="/dashboard/merchant/gigs"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#1D4ED8] hover:underline"
+            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--color-gold)] hover:underline"
           >
             View all gigs
             <ChevronRight className="h-4 w-4" />
@@ -385,15 +338,14 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
         </div>
       </section>
 
-      {/* Section 4 — Alerts & Safety */}
       <section>
-        <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-5 shadow-sm dark:border-amber-800/50 dark:bg-amber-950/20 sm:p-6">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        <div className="surface-card p-5 sm:p-6">
+          <h2 className="portal-section-title flex items-center gap-2">
+            <Shield className="h-5 w-5 text-[var(--color-gold)]" />
             Alerts & safety
           </h2>
           {!hasAlerts ? (
-            <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-3 text-sm text-[var(--color-ink-muted)]">
               No pending alerts. Verification and report outcomes appear here when relevant.
             </p>
           ) : (
@@ -402,34 +354,38 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
                 <li>
                   <Link
                     href="/dashboard/merchant/verification"
-                    className="block rounded-lg border border-amber-200/80 bg-white px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-zinc-900/50"
+                    className="block rounded-lg border border-[var(--color-border)] bg-[var(--color-page)] px-4 py-3 text-sm"
                   >
-                    <span className="font-medium text-amber-800 dark:text-amber-200">
-                      Verification: {data.verificationStatus === "pending" ? "Pending review" : "Complete verification"}
+                    <span className="font-medium text-[var(--color-warning)]">
+                      Verification:{" "}
+                      {data.verificationStatus === "pending"
+                        ? "Pending review"
+                        : "Complete verification"}
                     </span>
                   </Link>
                 </li>
               )}
               {data.pendingReportsAboutYou > 0 && (
-                <li className="rounded-lg border border-amber-200/80 bg-white px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-zinc-900/50">
-                  <span className="font-medium text-amber-800 dark:text-amber-200">
-                    {data.pendingReportsAboutYou} report{data.pendingReportsAboutYou !== 1 ? "s" : ""} about you pending review
+                <li className="rounded-lg border border-[var(--color-border)] bg-[var(--color-page)] px-4 py-3 text-sm">
+                  <span className="font-medium text-[var(--color-warning)]">
+                    {data.pendingReportsAboutYou} report
+                    {data.pendingReportsAboutYou !== 1 ? "s" : ""} about you pending review
                   </span>
                 </li>
               )}
               {data.noShowCount > 0 && (
-                <li className="rounded-lg border border-amber-200/80 bg-white px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-zinc-900/50">
-                  <span className="font-medium text-amber-800 dark:text-amber-200">
+                <li className="rounded-lg border border-[var(--color-border)] bg-[var(--color-page)] px-4 py-3 text-sm">
+                  <span className="font-medium text-[var(--color-warning)]">
                     {data.noShowCount} staff no-show{data.noShowCount !== 1 ? "s" : ""} recorded
                   </span>
                 </li>
               )}
               {data.reportOutcomes.length > 0 && (
-                <li className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm dark:border-zinc-700 dark:bg-zinc-900/50">
-                  <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                <li className="rounded-lg border border-[var(--color-border)] bg-[var(--color-page)] px-4 py-3 text-sm">
+                  <span className="font-medium text-[var(--color-ink)]">
                     Report outcomes: {data.reportOutcomes.length} resolved/dismissed
                   </span>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
                     You can see details in Settings → Safety.
                   </p>
                 </li>
@@ -439,15 +395,14 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
         </div>
       </section>
 
-      {/* Section 5 — Quick actions */}
       <section>
         <div className="flex flex-wrap gap-3">
-          {data.canPostGigs && (
-            atLimit ? (
+          {data.canPostGigs &&
+            (atLimit ? (
               <button
                 type="button"
                 onClick={() => setUpgradeModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-400 bg-zinc-200 px-5 py-2.5 text-sm font-semibold text-zinc-600 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
+                className="btn-portal-secondary inline-flex items-center gap-2 text-sm opacity-75"
               >
                 <Briefcase className="h-4 w-4" />
                 Post new gig (plan limit reached)
@@ -455,30 +410,29 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
             ) : (
               <Link
                 href="/dashboard/merchant/gigs/new"
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-[#84CC16] bg-[#84CC16] px-5 py-2.5 text-sm font-semibold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-[#A3E635] dark:border-[#84CC16] dark:bg-[#84CC16] dark:text-black dark:hover:bg-[#A3E635]"
+                className="btn-portal-primary inline-flex items-center gap-2 text-sm"
               >
                 <Briefcase className="h-4 w-4" />
                 Post new gig
               </Link>
-            )
-          )}
+            ))}
           <Link
             href="/dashboard/merchant/gigs"
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className="btn-portal-secondary inline-flex items-center gap-2 text-sm"
           >
             <Users className="h-4 w-4" />
             Review applicants
           </Link>
           <Link
             href="/dashboard/merchant/chats"
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className="btn-portal-secondary inline-flex items-center gap-2 text-sm"
           >
             <MessageCircle className="h-4 w-4" />
             Message staff
           </Link>
           <Link
             href="/dashboard/merchant/gigs"
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className="btn-portal-secondary inline-flex items-center gap-2 text-sm"
           >
             <Briefcase className="h-4 w-4" />
             View all gigs
@@ -486,10 +440,7 @@ export function MerchantDashboardClient({ data }: { data: MerchantDashboardData 
         </div>
       </section>
 
-      <UpgradePlanModal
-        open={upgradeModalOpen}
-        onClose={() => setUpgradeModalOpen(false)}
-      />
+      <UpgradePlanModal open={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
     </div>
   );
 }

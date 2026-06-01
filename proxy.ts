@@ -4,7 +4,15 @@ import type { Role } from "@/lib/roles";
 import { PROFILE_STATUS } from "@/lib/roles";
 import { getDashboardPathForRole } from "@/lib/dashboard";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/blocked"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/signup",
+  "/blocked",
+  "/verify",
+  "/forgot-password",
+  "/reset-password",
+];
 const DASHBOARD_BASE = "/dashboard";
 
 function isPublicPath(pathname: string): boolean {
@@ -14,8 +22,12 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
   let response = NextResponse.next({
-    request: { headers: request.headers },
+    request: { headers: requestHeaders },
   });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -47,7 +59,6 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const pathname = request.nextUrl.pathname;
 
   // Public routes: only refresh session, no redirect
   if (isPublicPath(pathname)) {

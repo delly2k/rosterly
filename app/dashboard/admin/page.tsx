@@ -1,94 +1,88 @@
 import { requireRole } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
-import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
-import { ButtonLink } from "@/components/ui/Button";
+import Link from "next/link";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ShieldCheck, GraduationCap } from "lucide-react";
+
+const tools = [
+  {
+    href: "/dashboard/admin/verifications",
+    title: "Verify users",
+    description: "Approve or reject ID verification requests.",
+    accent: "gold" as const,
+  },
+  {
+    href: "/dashboard/admin/reports",
+    title: "Reports & disputes",
+    description: "Non-payment, harassment, unsafe environment. Resolve or dismiss.",
+    accent: "warning" as const,
+  },
+  {
+    href: "/dashboard/admin/users",
+    title: "User management",
+    description: "Suspend or ban users. Status enforced by middleware.",
+    accent: "green" as const,
+  },
+  {
+    href: "/dashboard/admin/audit",
+    title: "Audit log",
+    description: "Gig, application, booking and check-in change history.",
+    accent: "gold" as const,
+  },
+  {
+    href: "/dashboard/admin/chats",
+    title: "Chats (read-only)",
+    description: "View all gig chats. Flagged messages highlighted.",
+    accent: "green" as const,
+  },
+  {
+    href: "/dashboard/admin/bookings",
+    title: "Bookings (dummy)",
+    description: "Payment confirmed / transport assigned toggles. No real integration.",
+    accent: "neutral" as const,
+  },
+  {
+    href: "/dashboard/admin/academy",
+    title: "Academy",
+    description: "Manage courses, questions, and certificates",
+    accent: "gold" as const,
+  },
+];
+
+const accentStyles = {
+  gold: "border-[var(--color-gold-border)] bg-[var(--color-gold-light)]",
+  warning: "border-[rgba(217,119,6,0.3)] bg-[var(--color-warning-light)]",
+  green: "border-[var(--color-green-border)] bg-[var(--color-green-light)]",
+  neutral: "border-[var(--color-border)] bg-[var(--color-card)]",
+};
 
 export default async function AdminDashboardPage() {
   await requireRole(ROLES.ADMIN);
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-[4px] border-[3px] border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-        <h1 className="page-title tracking-tight">
-          Admin dashboard
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-black/80">
-          Trust & safety tools. All actions are logged.
-        </p>
-      </div>
+    <div className="page-bg space-y-8">
+      <PageHeader
+        icon={ShieldCheck}
+        title="Admin dashboard"
+        description="Trust and safety tools"
+      />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="bg-[#FDE047]">
-          <CardTitle className="text-black">Verify users</CardTitle>
-          <CardDescription className="text-black/90">
-            Approve or reject ID verification requests.
-          </CardDescription>
-          <div className="mt-6">
-            <ButtonLink href="/dashboard/admin/verifications" variant="primary" size="sm">
-              Verification queue
-            </ButtonLink>
-          </div>
-        </Card>
-
-        <Card className="bg-[#F97316]">
-          <CardTitle className="text-black">Reports & disputes</CardTitle>
-          <CardDescription className="text-black/90">
-            Non-payment, harassment, unsafe environment. Resolve or dismiss.
-          </CardDescription>
-          <div className="mt-6">
-            <ButtonLink href="/dashboard/admin/reports" variant="primary" size="sm">
-              View reports
-            </ButtonLink>
-          </div>
-        </Card>
-
-        <Card className="bg-[#EC4899]">
-          <CardTitle className="text-black">User management</CardTitle>
-          <CardDescription className="text-black/90">
-            Suspend or ban users. Status enforced by middleware.
-          </CardDescription>
-          <div className="mt-6">
-            <ButtonLink href="/dashboard/admin/users" variant="primary" size="sm">
-              All users
-            </ButtonLink>
-          </div>
-        </Card>
-
-        <Card className="bg-[#06B6D4]">
-          <CardTitle className="text-black">Audit log</CardTitle>
-          <CardDescription className="text-black/90">
-            Gig, application, booking and check-in change history.
-          </CardDescription>
-          <div className="mt-6">
-            <ButtonLink href="/dashboard/admin/audit" variant="primary" size="sm">
-              View audit log
-            </ButtonLink>
-          </div>
-        </Card>
-
-        <Card className="bg-[#84CC16]">
-          <CardTitle className="text-black">Chats (read-only)</CardTitle>
-          <CardDescription className="text-black/90">
-            View all gig chats. Flagged messages highlighted.
-          </CardDescription>
-          <div className="mt-6">
-            <ButtonLink href="/dashboard/admin/chats" variant="primary" size="sm">
-              View all chats
-            </ButtonLink>
-          </div>
-        </Card>
-
-        <Card>
-          <CardTitle>Bookings (dummy)</CardTitle>
-          <CardDescription>
-            Payment confirmed / transport assigned toggles. No real integration.
-          </CardDescription>
-          <div className="mt-6">
-            <ButtonLink href="/dashboard/admin/bookings" variant="secondary" size="sm">
-              Manage bookings
-            </ButtonLink>
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {tools.map((tool) => (
+          <Link
+            key={tool.href}
+            href={tool.href}
+            className={`group surface-card block cursor-pointer overflow-hidden border-l-4 border-l-transparent p-5 transition-all duration-150 hover:border-l-[#C8973A] hover:bg-[#FAFAF8] hover:translate-x-[2px] ${accentStyles[tool.accent]}`}
+          >
+            <h2 className="admin-section-title">{tool.title}</h2>
+            <p className="mt-2 text-sm text-[var(--color-ink-muted)]">
+              {tool.description}
+            </p>
+            <span className="mt-4 inline-block text-sm font-medium text-[var(--color-ink-muted)] transition-transform duration-150 group-hover:translate-x-1 group-hover:text-[#C8973A]">
+              Open →
+            </span>
+          </Link>
+        ))}
       </div>
     </div>
   );

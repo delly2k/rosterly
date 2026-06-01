@@ -5,31 +5,32 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Briefcase,
-  FileCheck,
   CalendarDays,
   MessageCircle,
-  User,
-  Shield,
+  Mail,
   Settings,
   ClipboardCheck,
   Flag,
   Users,
   FileText,
   CreditCard,
+  User,
 } from "lucide-react";
 import type { Role } from "@/lib/roles";
 
-type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+};
 
 const PARTICIPANT_NAV: NavItem[] = [
-  { href: "/dashboard/participant", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/participant", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard/participant/gigs", label: "Gigs", icon: Briefcase },
-  { href: "/dashboard/participant/applications", label: "Applications", icon: FileCheck },
+  { href: "/dashboard/participant/invitations", label: "Invites", icon: Mail },
   { href: "/dashboard/participant/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/dashboard/participant/chats", label: "Chats", icon: MessageCircle },
-  { href: "/dashboard/participant/profile", label: "Profile", icon: User },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-  { href: "/dashboard/participant/safety", label: "Safety", icon: Shield },
 ];
 
 const MERCHANT_NAV: NavItem[] = [
@@ -65,16 +66,26 @@ function getNavForRole(role: Role): NavItem[] {
   }
 }
 
-export function DashboardBottomNav({ role }: { role: Role }) {
+export function DashboardBottomNav({
+  role,
+  pendingInvitationCount = 0,
+}: {
+  role: Role;
+  pendingInvitationCount?: number;
+}) {
   const pathname = usePathname();
-  const navItems = getNavForRole(role);
+  const navItems = getNavForRole(role).map((item) =>
+    item.href === "/dashboard/participant/invitations" && pendingInvitationCount > 0
+      ? { ...item, badge: pendingInvitationCount }
+      : item
+  );
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 flex-shrink-0 touch-manipulation items-center justify-around border-t-[3px] border-black bg-white pb-[env(safe-area-inset-bottom,0px)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 flex-shrink-0 touch-manipulation items-center justify-around border-t border-[var(--color-border)] bg-white pb-[env(safe-area-inset-bottom,0px)] md:hidden"
       aria-label="Main navigation"
     >
-      {navItems.map(({ href, label, icon: Icon }) => {
+      {navItems.map(({ href, label, icon: Icon, badge }) => {
         const active =
           pathname === href ||
           (href !== "/dashboard/participant" &&
@@ -88,12 +99,18 @@ export function DashboardBottomNav({ role }: { role: Role }) {
           <Link
             key={href}
             href={href}
-            className={`flex min-h-[48px] min-w-[48px] flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${
-              active ? "text-[#1D4ED8]" : "text-black"
+            className={`relative flex min-h-[48px] min-w-[48px] flex-1 flex-col items-center justify-center gap-0.5 transition-colors duration-150 ${
+              active ? "text-[#C8973A]" : "text-[#9CA3AF] hover:text-[#6B7280]"
             }`}
             aria-label={label}
           >
             <Icon className="h-6 w-6 shrink-0" aria-hidden />
+            {badge != null && badge > 0 && (
+              <span
+                className="absolute right-[22%] top-2 h-2 w-2 rounded-full bg-[#C8973A]"
+                aria-hidden
+              />
+            )}
           </Link>
         );
       })}

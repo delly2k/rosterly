@@ -1,47 +1,44 @@
-import Link from "next/link";
-import { requireRole } from "@/lib/auth";
+import { requireRole, createClient } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
-import {
-  getParticipantDashboardData,
-  logSosEvent,
-} from "@/app/dashboard/participant/actions";
+import { getParticipantDashboardData } from "@/app/dashboard/participant/actions";
+import { getPendingInvitationCount } from "@/lib/invitations";
 import { SosButton } from "./SosButton";
-import { ParticipantDashboardClient } from "./ParticipantDashboardClient";
+import { ParticipantDashboardPageView } from "./ParticipantDashboardPageView";
 
 export default async function ParticipantDashboardPage() {
   await requireRole(ROLES.PARTICIPANT);
-  const data = await getParticipantDashboardData();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const [data, pendingInvitations, profile] = await Promise.all([
+    getParticipantDashboardData(),
+    getPendingInvitationCount(user.id),
+    supabase
+      .from("participant_profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
+
   if (!data) return null;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {data.verificationStatus !== "verified" && (
-        <Link
-          href="/dashboard/participant/verification"
-          className="block rounded-[4px] border-[3px] border-black bg-[#84CC16] p-3 text-center text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-        >
-          {data.verificationStatus === "pending"
-            ? "View verification status"
-            : "Complete verification"}
-        </Link>
-      )}
-
-      {data.verificationStatus === "verified" && !data.profileComplete && (
-        <div className="rounded-[4px] border-[3px] border-black bg-[#84CC16] p-3 text-center text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          Complete your profile (name) in Profile for a full account.{" "}
-          <Link
-            href="/dashboard/participant/profile"
-            className="underline hover:no-underline"
-          >
-            Go to Profile
-          </Link>
-        </div>
-      )}
-
-      <ParticipantDashboardClient
-        data={data}
-        sosButton={<SosButton logSos={logSosEvent} />}
-      />
-    </div>
+    <ParticipantDashboardPageView
+      data={data}
+      participantName={profile.data?.full_name ?? null}
+      pendingInvitations={pendingInvitations}
+      sosButton={
+        <SosButton
+          gigTitle={
+            data.nextConfirmedGig?.gigTitle ??
+            data.upcomingBookings[0]?.gigTitle
+          }
+          gigAddress={data.upcomingBookings[0]?.locationGeneral ?? undefined}
+        />
+      }
+    />
   );
 }

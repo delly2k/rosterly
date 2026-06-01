@@ -1,9 +1,11 @@
-import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import { getMerchantDashboardData } from "@/app/dashboard/merchant/actions";
 import { VerificationBadge } from "@/app/dashboard/participant/VerificationBadge";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { VerificationBanner } from "@/components/dashboard/VerificationBanner";
 import { MerchantDashboardClient } from "./MerchantDashboardClient";
+import { LayoutDashboard } from "lucide-react";
 
 export default async function MerchantDashboardPage() {
   await requireRole(ROLES.MERCHANT);
@@ -11,31 +13,35 @@ export default async function MerchantDashboardPage() {
   if (!data) return null;
 
   return (
-    <div className="space-y-8">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="page-title tracking-tight">Merchant dashboard</h1>
-          {data.verificationStatus === "verified" && (
+    <div className="page-bg space-y-8">
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Merchant dashboard"
+        description="Manage your gigs and talent"
+        action={
+          data.verificationStatus === "verified" ? (
             <VerificationBadge status="verified" />
-          )}
-        </div>
-        {data.verificationStatus !== "verified" && (
-          <Link
-            href="/dashboard/merchant/verification"
-            className="inline-block text-sm font-medium text-amber-700 underline underline-offset-2 hover:no-underline dark:text-amber-300"
-          >
-            {data.verificationStatus === "pending"
-              ? "View verification status"
-              : "Complete verification"}
-          </Link>
-        )}
-      </header>
+          ) : undefined
+        }
+      />
 
-      {!data.canPostGigs && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-          You must be verified to post gigs. Complete your business profile and
-          officer verification to get started.
-        </div>
+      {data.verificationStatus !== "verified" && (
+        <VerificationBanner
+          href="/dashboard/merchant/verification"
+          title={
+            data.verificationStatus === "pending"
+              ? "Verification pending review"
+              : "Complete your verification"
+          }
+          subtitle={
+            data.verificationStatus === "pending"
+              ? "We are reviewing your business verification. Check back for updates."
+              : "You must verify your business before you can post gigs"
+          }
+          ctaLabel={
+            data.verificationStatus === "pending" ? "View status →" : "Verify now →"
+          }
+        />
       )}
 
       <MerchantDashboardClient data={data} />

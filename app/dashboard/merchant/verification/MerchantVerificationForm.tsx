@@ -97,7 +97,7 @@ export function MerchantVerificationForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {rejected && (
-        <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+        <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Your previous verification was rejected. You may submit again with a
           new document.
         </div>
@@ -105,7 +105,7 @@ export function MerchantVerificationForm({
 
       {submitError && (
         <div
-          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
           role="alert"
         >
           {submitError}
@@ -113,7 +113,7 @@ export function MerchantVerificationForm({
       )}
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label className="mb-2 block text-sm font-medium text-[var(--color-ink-muted)]">
           Officer ID document (e.g. passport, driver’s licence)
         </label>
         <input
@@ -128,7 +128,7 @@ export function MerchantVerificationForm({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          className="rounded-md border border-[#E5E3DC] bg-white px-3 py-2 text-sm font-medium text-[var(--color-ink-muted)] hover:bg-zinc-50"
         >
           {uploading
             ? "Uploading…"
@@ -137,28 +137,28 @@ export function MerchantVerificationForm({
               : "Upload officer ID"}
         </button>
         {officerDocPath && (
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 text-xs text-[#6B7280]">
             Document uploaded.
           </p>
         )}
       </div>
 
-      <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+      <div className="rounded-md border border-[#E5E3DC] bg-zinc-50 p-4">
+        <p className="text-sm text-[var(--color-ink-muted)]">
           {VERIFICATION_DISCLAIMER}
         </p>
         <label className="mt-3 flex items-center gap-2">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800"
+            className="h-4 w-4 rounded border-[#E5E3DC] text-[var(--color-ink)] focus:ring-zinc-500"
             {...register("accept_disclaimer")}
           />
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <span className="text-sm font-medium text-[var(--color-ink-muted)]">
             I accept the verification disclaimer
           </span>
         </label>
         {errors.accept_disclaimer && (
-          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+          <p className="mt-1 text-sm text-red-600">
             {errors.accept_disclaimer.message}
           </p>
         )}
@@ -167,7 +167,7 @@ export function MerchantVerificationForm({
       <button
         type="submit"
         disabled={isSubmitting || !officerDocPath}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="btn-portal-primary"
       >
         {isSubmitting ? "Submitting…" : "Submit verification"}
       </button>

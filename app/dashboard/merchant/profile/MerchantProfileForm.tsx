@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  upsertMerchantProfile,
-} from "@/app/dashboard/merchant/actions";
+import { MapPin } from "lucide-react";
+import AddressMap from "@/components/ui/AddressMap";
+import { PARISHES } from "@/lib/constants/parishes";
+import { upsertMerchantProfile } from "@/app/dashboard/merchant/actions";
 
 const PAYMENT_OPTIONS = [
   { value: "", label: "Select payment method" },
@@ -16,10 +17,19 @@ const PAYMENT_OPTIONS = [
   { value: "card", label: "Card" },
 ] as const;
 
+const BUSINESS_TYPES = [
+  "Sole Trader",
+  "Partnership",
+  "Limited Liability Company",
+  "Public Limited Company",
+  "NGO / Non-profit",
+  "Government Agency",
+  "Other",
+];
+
 const profileSchema = z.object({
   business_name: z.string().min(1, "Business name is required"),
   business_type: z.string().min(1, "Business type is required"),
-  address: z.string(),
   trn: z.string(),
   payment_method: z.string(),
   accept_disclaimer: z
@@ -39,49 +49,94 @@ type MerchantProfileFormProps = {
     business_name: string | null;
     business_type: string | null;
     address: string | null;
+    street_address?: string | null;
+    city?: string | null;
+    parish?: string | null;
+    postal_code?: string | null;
     trn: string | null;
     payment_method: string | null;
     disclaimer_accepted_at: string | null;
   } | null;
 };
 
+function legacyStreetAddress(initial: MerchantProfileFormProps["initial"]): string {
+  if (initial?.street_address?.trim()) return initial.street_address;
+  if (initial?.address?.trim()) return initial.address;
+  return "";
+}
+
 export function MerchantProfileForm({ initial }: MerchantProfileFormProps) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [streetAddress, setStreetAddress] = useState(() => legacyStreetAddress(initial));
+  const [city, setCity] = useState(initial?.city ?? "");
+  const [parish, setParish] = useState(initial?.parish ?? "");
+  const [postalCode, setPostalCode] = useState(initial?.postal_code ?? "");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       business_name: initial?.business_name ?? "",
       business_type: initial?.business_type ?? "",
-      address: initial?.address ?? "",
       trn: initial?.trn ?? "",
       payment_method: initial?.payment_method ?? "",
       accept_disclaimer: !!initial?.disclaimer_accepted_at,
     },
   });
 
-  // Sync form with server data when it changes (e.g. after save + refresh)
   useEffect(() => {
     profileForm.reset({
       business_name: initial?.business_name ?? "",
       business_type: initial?.business_type ?? "",
-      address: initial?.address ?? "",
       trn: initial?.trn ?? "",
       payment_method: initial?.payment_method ?? "",
       accept_disclaimer: !!initial?.disclaimer_accepted_at,
     });
-  }, [initial?.business_name, initial?.business_type, initial?.address, initial?.trn, initial?.payment_method, initial?.disclaimer_accepted_at, profileForm.reset]);
+    setStreetAddress(legacyStreetAddress(initial));
+    setCity(initial?.city ?? "");
+    setParish(initial?.parish ?? "");
+    setPostalCode(initial?.postal_code ?? "");
+  }, [
+    initial?.business_name,
+    initial?.business_type,
+    initial?.address,
+    initial?.street_address,
+    initial?.city,
+    initial?.parish,
+    initial?.postal_code,
+    initial?.trn,
+    initial?.payment_method,
+    initial?.disclaimer_accepted_at,
+    profileForm.reset,
+  ]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const q = [streetAddress, city, parish, "Jamaica"].filter(Boolean).join(", ");
+      if (q.replace(/,\s*Jamaica/, "").trim().length > 5) {
+        setDebouncedQuery(q);
+      } else {
+        setDebouncedQuery("");
+      }
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [streetAddress, city, parish]);
 
   async function onProfileSubmit(data: ProfileFormData) {
     setSubmitError(null);
     setSaveSuccess(false);
+    const combinedAddress = [streetAddress, city, parish, "Jamaica"].filter(Boolean).join(", ");
     try {
       await upsertMerchantProfile({
         business_name: data.business_name,
         business_type: data.business_type,
-        address: data.address || null,
+        street_address: streetAddress || null,
+        city: city || null,
+        parish: parish || null,
+        postal_code: postalCode || null,
+        address: combinedAddress || null,
         trn: data.trn || null,
         payment_method: data.payment_method || null,
         accept_disclaimer: data.accept_disclaimer,
@@ -94,114 +149,198 @@ export function MerchantProfileForm({ initial }: MerchantProfileFormProps) {
     }
   }
 
-  const inputClass =
-    "w-full rounded-[4px] border-[3px] border-black bg-white px-3 py-2 text-zinc-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:bg-zinc-800 dark:text-zinc-100";
+  const inputClass = "input-refined w-full px-3 py-2 text-sm text-[var(--color-ink)]";
+  const selectClass = "input-refined w-full text-sm text-[var(--color-ink)]";
+  const labelClass = "mb-1 block text-sm font-medium text-[var(--color-ink-muted)]";
 
   return (
-    <div className="space-y-10">
-      <section>
-        <form
-          onSubmit={profileForm.handleSubmit(onProfileSubmit)}
-          className="space-y-6"
-        >
-          {saveSuccess && (
-            <div
-              className="rounded-[4px] border-[3px] border-black bg-[#84CC16] px-4 py-3 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-              role="status"
-            >
-              Profile saved.
-            </div>
-          )}
-          {submitError && (
-            <div
-              className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200"
-              role="alert"
-            >
-              {submitError}
-            </div>
-          )}
+    <div
+      style={{
+        background: "white",
+        border: "0.5px solid var(--color-border)",
+        borderRadius: 12,
+        padding: 32,
+      }}
+    >
+      <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
+        {saveSuccess && (
+          <div
+            style={{
+              background: "var(--color-gold)",
+              color: "white",
+              borderRadius: "12px",
+              padding: "12px 16px",
+              fontSize: "14px",
+              fontWeight: 600,
+              marginBottom: 20,
+            }}
+            role="status"
+          >
+            Profile saved.
+          </div>
+        )}
+        {submitError && (
+          <div
+            className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+            role="alert"
+            style={{ marginBottom: 20 }}
+          >
+            {submitError}
+          </div>
+        )}
 
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "20px",
+            maxWidth: "900px",
+          }}
+        >
           <div>
-            <label
-              htmlFor="business_name"
-              className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
+            <label htmlFor="business_name" className={labelClass}>
               Business name
             </label>
             <input
               id="business_name"
               type="text"
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              className={inputClass}
               {...profileForm.register("business_name")}
             />
             {profileForm.formState.errors.business_name && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-1 text-sm text-red-600">
                 {profileForm.formState.errors.business_name.message}
               </p>
             )}
           </div>
 
           <div>
-            <label
-              htmlFor="business_type"
-              className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
+            <label htmlFor="business_type" className={labelClass}>
               Business type
             </label>
-            <input
+            <select
               id="business_type"
-              type="text"
-              placeholder="e.g. Sole trader, Limited company"
-              className={inputClass}
+              className={selectClass}
               {...profileForm.register("business_type")}
-            />
+            >
+              <option value="">Select business type</option>
+              {BUSINESS_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
             {profileForm.formState.errors.business_type && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-1 text-sm text-red-600">
                 {profileForm.formState.errors.business_type.message}
               </p>
             )}
           </div>
 
-          <div>
-            <label
-              htmlFor="address"
-              className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
-              Address
-            </label>
-            <textarea
-              id="address"
-              rows={2}
-              className={inputClass}
-              {...profileForm.register("address")}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="trn"
-              className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label htmlFor="trn" className={labelClass}>
               TRn (Tax reference number)
             </label>
             <input
               id="trn"
               type="text"
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              className={inputClass}
               {...profileForm.register("trn")}
             />
           </div>
 
           <div>
-            <label
-              htmlFor="payment_method"
-              className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            <label htmlFor="street_address" className={labelClass}>
+              Street address
+            </label>
+            <input
+              id="street_address"
+              type="text"
+              className={inputClass}
+              value={streetAddress}
+              onChange={(e) => setStreetAddress(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="city" className={labelClass}>
+              City / Town
+            </label>
+            <input
+              id="city"
+              type="text"
+              className={inputClass}
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="parish" className={labelClass}>
+              Parish
+            </label>
+            <select
+              id="parish"
+              className={selectClass}
+              value={parish}
+              onChange={(e) => setParish(e.target.value)}
             >
+              <option value="">Select parish</option>
+              {PARISHES.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="postal_code" className={labelClass}>
+              Postal code (optional)
+            </label>
+            <input
+              id="postal_code"
+              type="text"
+              className={inputClass}
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+            />
+          </div>
+
+          {debouncedQuery && (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: "var(--color-ink-muted)",
+                  marginBottom: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <MapPin size={13} color="var(--color-gold)" />
+                Location preview
+              </div>
+              <AddressMap query={debouncedQuery} />
+              <div
+                style={{ fontSize: 11, color: "var(--color-ink-hint)", marginTop: 6 }}
+              >
+                Showing: {debouncedQuery}
+              </div>
+            </div>
+          )}
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label htmlFor="payment_method" className={labelClass}>
               Payment method
             </label>
             <select
               id="payment_method"
-              className={inputClass}
+              className={selectClass}
               {...profileForm.register("payment_method")}
             >
               {PAYMENT_OPTIONS.map((opt) => (
@@ -212,36 +351,45 @@ export function MerchantProfileForm({ initial }: MerchantProfileFormProps) {
             </select>
           </div>
 
-          <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
-            <p className="text-sm text-zinc-700 dark:text-zinc-300">
-              {MERCHANT_DISCLAIMER}
-            </p>
+          <div
+            style={{ gridColumn: "1 / -1" }}
+            className="rounded-md border border-[#E5E3DC] bg-zinc-50 p-4"
+          >
+            <p className="text-sm text-[var(--color-ink-muted)]">{MERCHANT_DISCLAIMER}</p>
             <label className="mt-3 flex items-center gap-2">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800"
+                className="h-4 w-4 rounded border-[#E5E3DC] text-[var(--color-ink)] focus:ring-zinc-500"
                 {...profileForm.register("accept_disclaimer")}
               />
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-[var(--color-ink-muted)]">
                 I accept the merchant disclaimer
               </span>
             </label>
             {profileForm.formState.errors.accept_disclaimer && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-1 text-sm text-red-600">
                 {profileForm.formState.errors.accept_disclaimer.message}
               </p>
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={profileForm.formState.isSubmitting}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          <div
+            style={{
+              gridColumn: "1 / -1",
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
           >
-            {profileForm.formState.isSubmitting ? "Saving…" : "Save profile"}
-          </button>
-        </form>
-      </section>
+            <button
+              type="submit"
+              disabled={profileForm.formState.isSubmitting}
+              className="btn-portal-primary"
+            >
+              {profileForm.formState.isSubmitting ? "Saving…" : "Save profile"}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

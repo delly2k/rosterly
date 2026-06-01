@@ -33,13 +33,13 @@ export function BackfillProfilePhotoButton({ userId }: { userId: string }) {
         type="button"
         onClick={handleClick}
         disabled={loading}
-        className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+        className="btn-admin-primary"
       >
         {loading ? "Setting…" : "Set profile photo from verification"}
       </button>
       {message && (
         <p
-          className={`mt-2 text-sm ${message.type === "ok" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+          className={`mt-2 text-sm ${message.type === "ok" ? "text-[var(--color-green)]" : "text-[var(--color-danger)]"}`}
           role="status"
         >
           {message.text}

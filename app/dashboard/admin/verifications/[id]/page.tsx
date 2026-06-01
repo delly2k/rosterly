@@ -1,9 +1,73 @@
 import Link from "next/link";
+import {
+  BadgeCheck,
+  Building2,
+  Calendar,
+  CreditCard,
+  Sparkles,
+  User,
+} from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import { getVerificationDetail } from "@/app/dashboard/admin/actions";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { VerificationActions } from "../VerificationActions";
 import { ZoomableImage } from "./ZoomableImage";
+import {
+  VerificationAiAnalysis,
+  type AiVerificationAnalysis,
+} from "./VerificationAiAnalysis";
+
+function statusPill(status: string) {
+  if (status === "approved") {
+    return {
+      bg: "var(--color-green-light)",
+      border: "var(--color-green-border)",
+      color: "var(--color-green)",
+      label: "Approved",
+    };
+  }
+  if (status === "rejected") {
+    return {
+      bg: "var(--color-danger-light)",
+      border: "rgba(220,38,38,0.2)",
+      color: "var(--color-danger)",
+      label: "Rejected",
+    };
+  }
+  return {
+    bg: "var(--color-warning-light)",
+    border: "rgba(217,119,6,0.3)",
+    color: "var(--color-warning)",
+    label: "Pending review",
+  };
+}
+
+function aiVerdictPill(verdict: string | null) {
+  if (!verdict) return null;
+  if (verdict === "pass") {
+    return {
+      bg: "var(--color-green-light)",
+      border: "var(--color-green-border)",
+      color: "var(--color-green)",
+      label: `AI: Pass`,
+    };
+  }
+  if (verdict === "flag") {
+    return {
+      bg: "var(--color-danger-light)",
+      border: "rgba(220,38,38,0.2)",
+      color: "var(--color-danger)",
+      label: `AI: Flag`,
+    };
+  }
+  return {
+    bg: "var(--color-gold-light)",
+    border: "var(--color-gold-border)",
+    color: "var(--color-warning)",
+    label: `AI: Review`,
+  };
+}
 
 export default async function AdminVerificationDetailPage({
   params,
@@ -16,125 +80,411 @@ export default async function AdminVerificationDetailPage({
 
   if (!detail) {
     return (
-      <div className="space-y-6">
-        <Link
-          href="/dashboard/admin/verifications"
-          className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          ← Verification queue
-        </Link>
-        <p className="text-zinc-600 dark:text-zinc-400">Verification not found.</p>
+      <div className="page-bg space-y-6">
+        <PageHeader
+          icon={BadgeCheck}
+          title="Verification not found"
+          action={
+            <Link
+              href="/dashboard/admin/verifications"
+              className="text-sm font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+            >
+              ← Queue
+            </Link>
+          }
+        />
+        <p className="text-[var(--color-ink-muted)]">
+          This verification may have been removed.
+        </p>
       </div>
     );
   }
 
-  const typeLabel =
-    detail.type === "participant_id" ? "Participant ID" : "Merchant officer";
+  const isParticipant = detail.type === "participant_id";
+  const typeLabel = isParticipant ? "Participant ID" : "Merchant officer";
+  const displayName = detail.userFullName?.trim() || "Unknown submitter";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  const status = statusPill(detail.status);
+  const aiPill = aiVerdictPill(detail.ai_verdict);
+  const canReview =
+    detail.status === "pending" || detail.status === "rejected";
+  const submittedDate = new Date(detail.created_at).toLocaleDateString("en-JM", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const submittedTime = new Date(detail.created_at).toLocaleTimeString("en-JM", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div className="page-bg space-y-8">
+      <PageHeader
+        icon={BadgeCheck}
+        title="Verification details"
+        description={`${typeLabel} submission`}
+        action={
           <Link
             href="/dashboard/admin/verifications"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="text-sm font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
           >
             ← Verification queue
           </Link>
-          <h1 className="page-title mt-2 tracking-tight">
-            Verification details
-          </h1>
+        }
+      />
+
+      {/* Submitter hero */}
+      <div
+        style={{
+          background: "white",
+          border: `0.5px solid ${
+            detail.ai_verdict === "flag"
+              ? "rgba(220,38,38,0.3)"
+              : "var(--color-border)"
+          }`,
+          borderLeft: `3px solid ${
+            detail.ai_verdict === "flag"
+              ? "var(--color-danger)"
+              : detail.ai_verdict === "pass"
+                ? "var(--color-green)"
+                : "var(--color-gold)"
+          }`,
+          borderRadius: 12,
+          padding: "20px 24px",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 20,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: isParticipant ? "50%" : 10,
+              background: isParticipant ? "var(--color-gold-light)" : "#EFF6FF",
+              border: isParticipant
+                ? "1px solid var(--color-gold-border)"
+                : "1px solid #BFDBFE",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 16,
+              fontWeight: 600,
+              color: isParticipant ? "var(--color-gold)" : "#2563EB",
+              flexShrink: 0,
+            }}
+          >
+            {initials}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 600,
+                color: "var(--color-ink)",
+                marginBottom: 8,
+              }}
+            >
+              {displayName}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "3px 10px",
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  background: isParticipant
+                    ? "var(--color-gold-light)"
+                    : "#EFF6FF",
+                  border: `0.5px solid ${
+                    isParticipant ? "var(--color-gold-border)" : "#BFDBFE"
+                  }`,
+                  color: isParticipant ? "var(--color-gold)" : "#2563EB",
+                }}
+              >
+                {isParticipant ? (
+                  <User size={11} />
+                ) : (
+                  <Building2 size={11} />
+                )}
+                {typeLabel}
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "3px 10px",
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  background: status.bg,
+                  border: `0.5px solid ${status.border}`,
+                  color: status.color,
+                }}
+              >
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: "currentColor",
+                  }}
+                />
+                {status.label}
+              </span>
+              {aiPill && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "3px 10px",
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: aiPill.bg,
+                    border: `0.5px solid ${aiPill.border}`,
+                    color: aiPill.color,
+                  }}
+                >
+                  <Sparkles size={10} />
+                  {aiPill.label}
+                  {detail.ai_confidence != null && (
+                    <span style={{ fontWeight: 500, opacity: 0.85 }}>
+                      · {detail.ai_confidence}%
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+            <div
+              style={{
+                marginTop: 10,
+                fontSize: 12,
+                color: "var(--color-ink-muted)",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 12,
+                alignItems: "center",
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <Calendar size={12} />
+                Submitted {submittedDate} at {submittedTime}
+              </span>
+            </div>
+          </div>
         </div>
-        {(detail.status === "pending" || detail.status === "rejected") && (
-          <VerificationActions verificationId={detail.id} />
+
+        {canReview && (
+          <VerificationActions verificationId={detail.id} variant="detail" />
         )}
       </div>
 
-      <div className="rounded-[4px] border-[3px] border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">
-              User ID
-            </dt>
-            <dd className="mt-1 font-mono text-sm text-zinc-900 dark:text-zinc-100">
-              {detail.user_id}
-            </dd>
+      {/* Documents */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div
+          style={{
+            background: "white",
+            border: "0.5px solid var(--color-border)",
+            borderRadius: 12,
+            padding: "20px 24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 6,
+            }}
+          >
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                background: "var(--color-gold-light)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <CreditCard size={15} color="var(--color-gold)" />
+            </div>
+            <div>
+              <h2
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--color-ink)",
+                }}
+              >
+                ID document
+              </h2>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--color-ink-muted)",
+                  marginTop: 2,
+                }}
+              >
+                Compare with the selfie before approving
+              </p>
+            </div>
           </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">
-              Name
-            </dt>
-            <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-100">
-              {detail.userFullName ?? "—"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">
-              Type
-            </dt>
-            <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-100">
-              {typeLabel}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">
-              Submitted
-            </dt>
-            <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-100">
-              {new Date(detail.created_at).toLocaleString()}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">
-              Status
-            </dt>
-            <dd className="mt-1 text-sm font-medium capitalize text-zinc-900 dark:text-zinc-100">
-              {detail.status}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="grid gap-8 md:grid-cols-2">
-        <div className="rounded-[4px] border-[3px] border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-          <h2 className="section-title text-base">ID document</h2>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Compare with the selfie before approving.
-          </p>
           {detail.idDocSignedUrl ? (
             <ZoomableImage src={detail.idDocSignedUrl} alt="ID document" />
           ) : (
-            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-              No ID document uploaded.
+            <p
+              style={{
+                marginTop: 16,
+                fontSize: 13,
+                color: "var(--color-ink-muted)",
+                padding: "24px",
+                textAlign: "center",
+                background: "#FAFAF8",
+                borderRadius: 8,
+                border: "0.5px solid var(--color-border)",
+              }}
+            >
+              No ID document uploaded
             </p>
           )}
         </div>
 
-        <div className="rounded-[4px] border-[3px] border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-          <h2 className="section-title text-base">Selfie</h2>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Should match the person on the ID.
-          </p>
+        <div
+          style={{
+            background: "white",
+            border: "0.5px solid var(--color-border)",
+            borderRadius: 12,
+            padding: "20px 24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 6,
+            }}
+          >
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                background: "var(--color-gold-light)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <User size={15} color="var(--color-gold)" />
+            </div>
+            <div>
+              <h2
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--color-ink)",
+                }}
+              >
+                Selfie
+              </h2>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--color-ink-muted)",
+                  marginTop: 2,
+                }}
+              >
+                Should match the person on the ID
+              </p>
+            </div>
+          </div>
           {detail.selfieSignedUrl ? (
             <ZoomableImage src={detail.selfieSignedUrl} alt="Selfie" />
           ) : (
-            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-              No selfie uploaded.
+            <p
+              style={{
+                marginTop: 16,
+                fontSize: 13,
+                color: "var(--color-ink-muted)",
+                padding: "24px",
+                textAlign: "center",
+                background: "#FAFAF8",
+                borderRadius: 8,
+                border: "0.5px solid var(--color-border)",
+              }}
+            >
+              {isParticipant
+                ? "No selfie uploaded"
+                : "Not required for merchant officer verification"}
             </p>
           )}
         </div>
       </div>
 
-      {(detail.status === "pending" || detail.status === "rejected") && (
-        <div className="border-t border-zinc-200 pt-6 dark:border-zinc-700">
-          {detail.type === "participant_id" && (
-            <p className="mb-3 text-sm text-zinc-600 dark:text-zinc-400">
-              Approving will set this selfie as the participant&apos;s profile photo.
-            </p>
+      {(canReview || detail.ai_verdict || detail.ai_analysis) && (
+        <section className="space-y-4">
+          <VerificationAiAnalysis
+            verificationId={detail.id}
+            initialAnalysis={
+              detail.ai_analysis as AiVerificationAnalysis | null
+            }
+          />
+          {canReview && isParticipant && (
+            <div
+              style={{
+                background: "var(--color-gold-light)",
+                border: "0.5px solid var(--color-gold-border)",
+                borderRadius: 10,
+                padding: "12px 16px",
+                fontSize: 13,
+                color: "var(--color-ink)",
+                lineHeight: 1.5,
+              }}
+            >
+              Approving will set this selfie as the participant&apos;s profile
+              photo.
+            </div>
           )}
-          <div className="flex justify-end gap-3">
-            <VerificationActions verificationId={detail.id} />
-          </div>
+        </section>
+      )}
+
+      {detail.status === "approved" && (
+        <div
+          style={{
+            background: "var(--color-green-light)",
+            border: "0.5px solid var(--color-green-border)",
+            borderRadius: 12,
+            padding: "16px 20px",
+            fontSize: 13,
+            color: "var(--color-green)",
+          }}
+        >
+          This verification has been approved.
         </div>
       )}
     </div>

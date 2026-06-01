@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { LogIn, LogOut } from "lucide-react";
 import { recordCheckin } from "@/app/dashboard/participant/bookings/actions";
 
 const CHECKIN_BUFFER_BEFORE_MS = 60 * 60 * 1000;
@@ -36,11 +37,13 @@ export function CheckinCheckoutSection({
   gigStartTime,
   gigEndTime,
   checkins,
+  variant = "default",
 }: {
   bookingId: string;
   gigStartTime: string | null;
   gigEndTime: string | null;
   checkins: CheckinRow[];
+  variant?: "default" | "hero";
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<"in" | "out" | null>(null);
@@ -86,36 +89,115 @@ export function CheckinCheckoutSection({
 
   const hasWindow = gigStartTime && gigEndTime;
 
+  if (variant === "hero") {
+    return (
+      <div>
+        {!hasWindow && (
+          <p style={{ fontSize: 12, color: "var(--color-warning)", marginBottom: 12 }}>
+            This gig has no start/end time set; check-in may not be available.
+          </p>
+        )}
+        {hasWindow && !withinWindow && windowText && (
+          <p style={{ fontSize: 12, color: "var(--color-ink-muted)", marginBottom: 12 }}>
+            Check-in is allowed from 1 hour before start until 15 minutes after end.
+          </p>
+        )}
+        <p style={{ fontSize: 11, color: "var(--color-ink-hint)", marginBottom: 12 }}>
+          Attendance is not affected by legal status.{" "}
+          <Link
+            href="/legal/acknowledgment"
+            style={{ color: "var(--color-ink-muted)", textDecoration: "underline" }}
+          >
+            Payment &amp; Liability acknowledgment
+          </Link>
+        </p>
+        {error && (
+          <p style={{ fontSize: 12, color: "var(--color-danger)", marginBottom: 12 }} role="alert">
+            {error}
+          </p>
+        )}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => handleCheck("in")}
+            disabled={!canCheckIn || !!loading || !withinWindow}
+            title={!withinWindow && windowText ? windowText : undefined}
+            style={{
+              padding: "10px 24px",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              background: "var(--color-gold)",
+              color: "white",
+              border: "none",
+              cursor: !canCheckIn || !!loading || !withinWindow ? "not-allowed" : "pointer",
+              opacity: !canCheckIn || !!loading || !withinWindow ? 0.6 : 1,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <LogIn size={14} />
+            {loading === "in" ? "Recording…" : "Check in"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCheck("out")}
+            disabled={!canCheckOut || !!loading || !withinWindow}
+            title={!withinWindow && windowText ? windowText : undefined}
+            style={{
+              padding: "10px 24px",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              background: "var(--color-green)",
+              color: "white",
+              border: "none",
+              cursor: !canCheckOut || !!loading || !withinWindow ? "not-allowed" : "pointer",
+              opacity: !canCheckOut || !!loading || !withinWindow ? 0.6 : 1,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <LogOut size={14} />
+            {loading === "out" ? "Recording…" : "Check out"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
-      <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-100">
+    <div className="rounded-md border border-[#E5E3DC] bg-zinc-50 p-4">
+      <h2 className="text-base font-medium text-[var(--color-ink)]">
         Attendance
       </h2>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
         Check in when you arrive and check out when you leave. GPS is recorded
         only during the job time window. No live tracking.
       </p>
       {!hasWindow && (
-        <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
+        <p className="mt-2 text-sm text-amber-700">
           This gig has no start/end time set; check-in may not be available.
         </p>
       )}
       {hasWindow && !withinWindow && windowText && (
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400" title={windowText}>
+        <p className="mt-2 text-sm text-[var(--color-ink-muted)]" title={windowText}>
           Check-in is allowed from 1 hour before start until 15 minutes after end.
         </p>
       )}
-      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
+      <p className="mt-2 text-xs text-[#6B7280]">
         Attendance is not affected by legal status.{" "}
         <Link
           href="/legal/acknowledgment"
-          className="font-medium text-zinc-700 underline underline-offset-2 hover:no-underline dark:text-zinc-400"
+          className="font-medium text-[var(--color-ink-muted)] underline underline-offset-2 hover:no-underline"
         >
           Payment &amp; Liability acknowledgment
         </Link>
       </p>
       {error && (
-        <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
+        <p className="mt-2 text-sm text-red-600" role="alert">
           {error}
         </p>
       )}
@@ -134,7 +216,7 @@ export function CheckinCheckoutSection({
           onClick={() => handleCheck("out")}
           disabled={!canCheckOut || !!loading || !withinWindow}
           title={!withinWindow && windowText ? windowText : undefined}
-          className="min-h-[44px] rounded-md border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 active:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:active:bg-zinc-700"
+          className="min-h-[44px] rounded-md border border-[#E5E3DC] bg-white px-5 py-3 text-sm font-medium text-[var(--color-ink-muted)] hover:bg-zinc-50 active:bg-zinc-50 disabled:opacity-50"
         >
           {loading === "out" ? "Recording…" : "Check out"}
         </button>

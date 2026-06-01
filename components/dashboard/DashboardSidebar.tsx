@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Briefcase,
   FileCheck,
   CalendarDays,
+  CalendarCheck,
   MessageCircle,
+  Mail,
   User,
   Shield,
   Settings,
@@ -18,14 +19,22 @@ import {
   Users,
   FileText,
   CreditCard,
+  GraduationCap,
 } from "lucide-react";
 import type { Role } from "@/lib/roles";
 
-type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+};
 
 const PARTICIPANT_NAV: NavItem[] = [
   { href: "/dashboard/participant", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/participant/gigs", label: "Gigs", icon: Briefcase },
+  { href: "/dashboard/participant/academy", label: "Academy", icon: GraduationCap },
+  { href: "/dashboard/participant/invitations", label: "Invitations", icon: Mail },
   { href: "/dashboard/participant/applications", label: "Applications", icon: FileCheck },
   { href: "/dashboard/participant/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/dashboard/participant/chats", label: "Chats", icon: MessageCircle },
@@ -37,6 +46,7 @@ const PARTICIPANT_NAV: NavItem[] = [
 const MERCHANT_NAV: NavItem[] = [
   { href: "/dashboard/merchant", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/merchant/gigs", label: "Gigs", icon: Briefcase },
+  { href: "/dashboard/merchant/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/dashboard/merchant/chats", label: "Chats", icon: MessageCircle },
   { href: "/dashboard/merchant/profile", label: "Profile", icon: User },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
@@ -52,6 +62,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/dashboard/admin/audit", label: "Audit log", icon: FileText },
   { href: "/dashboard/admin/chats", label: "Chats", icon: MessageCircle },
   { href: "/dashboard/admin/bookings", label: "Bookings", icon: CalendarDays },
+  { href: "/dashboard/admin/academy", label: "Academy", icon: GraduationCap },
 ];
 
 function getNavForRole(role: Role): NavItem[] {
@@ -68,30 +79,68 @@ function getNavForRole(role: Role): NavItem[] {
 }
 
 const navBase =
-  "flex items-center gap-3 rounded-[4px] border-[2px] border-transparent px-3 py-2.5 text-sm font-bold transition-all brutal-press";
+  "flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium transition-all duration-150";
 const navInactive =
-  "text-[#e5e7eb] hover:bg-gray-700/50 hover:text-white shadow-none";
+  "text-[#9CA3AF] hover:bg-[rgba(255,255,255,0.05)] hover:text-[#F5F4F0]";
 const navActive =
-  "border-black bg-[#84CC16] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]";
+  "border-l-[3px] border-l-[#C8973A] bg-[rgba(200,151,58,0.15)] text-[#C8973A] [&_svg]:text-[#C8973A]";
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length >= 2) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length === 1) {
+    return parts[0].toUpperCase();
+  }
+  return "?";
+}
+
+function formatRoleLabel(role: Role): string {
+  switch (role) {
+    case "participant":
+      return "Participant";
+    case "merchant":
+      return "Merchant";
+    case "admin":
+      return "Admin";
+    default:
+      return role;
+  }
+}
 
 export function DashboardSidebar({
   role,
-  userName,
-  verified = false,
+  displayName,
+  pendingInvitationCount = 0,
 }: {
   role: Role;
-  userName: string;
-  verified?: boolean;
+  displayName: string;
+  pendingInvitationCount?: number;
 }) {
   const pathname = usePathname();
-  const navItems = getNavForRole(role);
+  const navItems = getNavForRole(role).map((item) =>
+    item.href === "/dashboard/participant/invitations" && pendingInvitationCount > 0
+      ? { ...item, badge: pendingInvitationCount }
+      : item
+  );
+  const initials = getInitials(displayName);
+  const roleLabel = formatRoleLabel(role);
+
+  function handleSignOut() {
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = "/api/auth/signout";
+    document.body.appendChild(form);
+    form.submit();
+  }
 
   return (
-    <aside
-      className="fixed left-0 top-0 z-10 hidden h-screen w-20 flex-col border-r-[3px] border-black bg-[#1F2937] text-[#e5e7eb] md:flex lg:w-64"
-      style={{ boxShadow: "6px 0 0 0 #000" }}
-    >
-      <div className="flex shrink-0 items-center justify-center border-b-[3px] border-black px-2 py-2">
+    <aside className="fixed left-0 top-0 z-10 hidden h-screen w-20 flex-col border-r border-[rgba(255,255,255,0.08)] bg-[#1A1D23] text-[#9CA3AF] md:flex lg:w-64">
+      <div className="flex shrink-0 items-center justify-center border-b border-[rgba(255,255,255,0.08)] px-2 pt-4 pb-4">
         <Link
           href={
             role === "admin"
@@ -103,20 +152,21 @@ export function DashboardSidebar({
           className="flex items-center transition opacity-95 hover:opacity-100"
           aria-label="Rosterly home"
         >
-          <Image
-            src="/logo.png"
-            alt=""
-            width={80}
-            height={80}
-            className="h-10 w-10 object-contain md:h-11 md:w-11 lg:h-12 lg:w-12 xl:h-14 xl:w-14"
-            priority
+          <img
+            src="/logo.svg"
+            alt="Rosterly"
+            style={{
+              height: 28,
+              width: "auto",
+              filter:
+                "drop-shadow(0px 1px 3px rgba(0,0,0,0.3)) drop-shadow(0px 0px 8px rgba(200,151,58,0.2))",
+            }}
           />
         </Link>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 overflow-hidden p-2 lg:p-3">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          // Exact match, or path starts with href; only highlight if no other nav item has a longer matching href (so Billing is active on /settings/billing, not Settings)
+      <div className="flex flex-1 flex-col gap-1 overflow-hidden p-2 lg:p-3">
+        {navItems.map(({ href, label, icon: Icon, badge }) => {
           const active =
             pathname === href ||
             (href !== "/dashboard/participant" &&
@@ -130,37 +180,121 @@ export function DashboardSidebar({
             <Link
               key={href}
               href={href}
-              className={`${navBase} min-h-[48px] md:justify-center md:px-2 lg:justify-start lg:px-3 ${active ? navActive : navInactive}`}
+              className={`${navBase} relative min-h-[48px] md:justify-center md:px-2 lg:justify-start lg:px-3 ${active ? navActive : navInactive}`}
               title={label}
             >
               <Icon className="h-5 w-5 shrink-0" />
               <span className="hidden lg:inline">{label}</span>
+              {badge != null && badge > 0 && (
+                <span
+                  className="absolute right-1 top-2 h-2 w-2 rounded-full bg-[#C8973A] lg:right-3 lg:top-1/2 lg:-translate-y-1/2"
+                  aria-label={`${badge} pending invitations`}
+                />
+              )}
             </Link>
           );
         })}
       </div>
 
-      <div className="border-t-[3px] border-black p-2 lg:p-3">
-        <p className="truncate px-3 py-1 text-xs text-gray-400">{userName}</p>
-        <div className="mb-2 flex flex-wrap items-center gap-1.5">
-          <p className="truncate px-3 py-0.5 text-xs font-bold capitalize text-gray-300">
-            {role}
-          </p>
-          {verified && (
-            <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-              Verified
-            </span>
-          )}
-        </div>
-        <form action="/api/auth/signout" method="post">
-          <button
-            type="submit"
-            className="flex w-full items-center gap-3 rounded-[4px] border-[2px] border-black bg-white px-3 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all brutal-press hover:bg-gray-100"
+      <div
+        style={{
+          borderTop: "0.5px solid rgba(255,255,255,0.08)",
+          padding: "16px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "rgba(200, 151, 58, 0.15)",
+              border: "1px solid rgba(200, 151, 58, 0.3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#C8973A",
+              flexShrink: 0,
+            }}
           >
-            <LogOut className="h-5 w-5 shrink-0" />
-            Sign out
-          </button>
-        </form>
+            {initials}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#F5F4F0",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {displayName}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "rgba(200, 151, 58, 0.8)",
+                marginTop: 2,
+                textTransform: "capitalize",
+              }}
+            >
+              {roleLabel}
+            </div>
+          </div>
+
+          <Link
+            href="/dashboard/settings/account"
+            style={{
+              color: "rgba(255,255,255,0.3)",
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
+            aria-label="Account settings"
+          >
+            <Settings size={15} />
+          </Link>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSignOut}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 10px",
+            borderRadius: 8,
+            background: "rgba(255,255,255,0.04)",
+            border: "0.5px solid rgba(255,255,255,0.08)",
+            color: "rgba(255,255,255,0.4)",
+            fontSize: 13,
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(220,38,38,0.1)";
+            e.currentTarget.style.borderColor = "rgba(220,38,38,0.2)";
+            e.currentTarget.style.color = "#DC2626";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+            e.currentTarget.style.color = "rgba(255,255,255,0.4)";
+          }}
+        >
+          <LogOut size={14} />
+          Sign out
+        </button>
       </div>
     </aside>
   );

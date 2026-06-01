@@ -9,11 +9,25 @@ import { NotificationToggleRow } from "@/components/settings/NotificationToggleR
 import { updateNotificationSettings } from "../actions";
 
 const KEYS = {
-  newGigMatches: "new_gig_matches",
-  applicationUpdates: "application_updates",
-  bookingReminders: "booking_reminders",
-  safetyAlerts: "safety_alerts",
+  newGigMatch: "new_gig_match",
+  applicationUpdates: "application_rejected",
+  bookingReminders: "booking_offer",
+  safetyAlerts: "verification_approved",
 } as const;
+
+const LEGACY_KEYS: Record<string, string> = {
+  new_gig_match: "new_gig_matches",
+  application_rejected: "application_updates",
+  booking_offer: "booking_reminders",
+  verification_approved: "safety_alerts",
+};
+
+function readPref(settings: Record<string, boolean>, key: string): boolean {
+  if (settings[key] !== undefined) return settings[key];
+  const legacy = LEGACY_KEYS[key];
+  if (legacy && settings[legacy] !== undefined) return settings[legacy];
+  return true;
+}
 
 const TOAST_DURATION_MS = 3000;
 
@@ -24,10 +38,10 @@ export function NotificationsParticipantForm({
 }) {
   const router = useRouter();
   const [settings, setSettings] = useState({
-    [KEYS.newGigMatches]: initialSettings[KEYS.newGigMatches] ?? true,
-    [KEYS.applicationUpdates]: initialSettings[KEYS.applicationUpdates] ?? true,
-    [KEYS.bookingReminders]: initialSettings[KEYS.bookingReminders] ?? true,
-    [KEYS.safetyAlerts]: initialSettings[KEYS.safetyAlerts] ?? true,
+    [KEYS.newGigMatch]: readPref(initialSettings, KEYS.newGigMatch),
+    [KEYS.applicationUpdates]: readPref(initialSettings, KEYS.applicationUpdates),
+    [KEYS.bookingReminders]: readPref(initialSettings, KEYS.bookingReminders),
+    [KEYS.safetyAlerts]: readPref(initialSettings, KEYS.safetyAlerts),
   });
   const [toast, setToast] = useState<string | null>(null);
 
@@ -49,7 +63,7 @@ export function NotificationsParticipantForm({
   }, [toast]);
 
   const update = useCallback(
-    (key: string, value: boolean) => {
+    (key: (typeof KEYS)[keyof typeof KEYS], value: boolean) => {
       const next = { ...settings, [key]: value };
       setSettings(next);
       void persist(next);
@@ -66,8 +80,8 @@ export function NotificationsParticipantForm({
           <NotificationToggleRow
             label="New gig matches"
             description="When new gigs match your profile or preferences."
-            checked={settings[KEYS.newGigMatches]}
-            onChange={(v) => update(KEYS.newGigMatches, v)}
+            checked={settings[KEYS.newGigMatch]}
+            onChange={(v) => update(KEYS.newGigMatch, v)}
             last={false}
           />
           <NotificationToggleRow
@@ -102,7 +116,7 @@ export function NotificationsParticipantForm({
 
       {toast && (
         <div
-          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--color-gold)] px-4 py-2 text-sm font-medium text-white shadow-lg"
           role="status"
           aria-live="polite"
         >

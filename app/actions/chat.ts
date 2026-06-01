@@ -1,7 +1,9 @@
 "use server";
 
-import { createClient, getCurrentUser } from "@/lib/auth";
+import { createClient, createAdminClient, getCurrentUser } from "@/lib/auth";
+import { moderateMessage } from "@/lib/chatModerationAI";
 import { containsPhoneNumber, getFlaggedKeyword } from "@/lib/chatModeration";
+import { createNotification, getAdminUserIds } from "@/lib/notifications";
 import { ROLES } from "@/lib/roles";
 
 export type ChatRow = {
@@ -18,10 +20,13 @@ export type ChatRow = {
 export type MessageRow = {
   id: string;
   chat_id: string;
-  sender_id: string;
+  sender_id: string | null;
   body: string;
   flagged: boolean;
   flagged_reason: string | null;
+  ai_verdict?: string | null;
+  ai_category?: string | null;
+  is_system?: boolean;
   created_at: string;
 };
 
@@ -219,20 +224,22 @@ export async function getMessages(chatId: string): Promise<MessageRow[]> {
 
   const { data: messages } = await supabase
     .from("messages")
-    .select("id, chat_id, sender_id, body, flagged, flagged_reason, created_at")
+    .select(
+      "id, chat_id, sender_id, body, flagged, flagged_reason, ai_verdict, ai_category, is_system, created_at"
+    )
     .eq("chat_id", chatId)
     .order("created_at", { ascending: true });
 
   return (messages ?? []).filter(
-    (m) => !blockedIds.has(m.sender_id)
+    (m) => m.is_system || !m.sender_id || !blockedIds.has(m.sender_id)
   ) as MessageRow[];
 }
 
-/** Send a message. Rejects if body contains phone number; auto-flags risky keywords. */
+/** Send a message. AI moderation + keyword/phone checks. */
 export async function sendMessage(
   chatId: string,
   body: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; blocked?: boolean; message?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -242,8 +249,14 @@ export async function sendMessage(
   const trimmed = body.trim();
   if (!trimmed) return { ok: false, error: "Message cannot be empty." };
 
-  if (containsPhoneNumber(trimmed))
-    return { ok: false, error: "Messages cannot contain phone numbers. Keep contact in-app." };
+  if (containsPhoneNumber(trimmed)) {
+    return {
+      ok: false,
+      blocked: true,
+      message:
+        "Personal contact details cannot be shared on Rosterly. All communication must stay on platform.",
+    };
+  }
 
   const { data: chat } = await supabase
     .from("chats")
@@ -255,17 +268,90 @@ export async function sendMessage(
     chat.merchant_user_id === user.id || chat.participant_user_id === user.id;
   if (!isParticipant) return { ok: false, error: "You cannot post in this chat." };
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const senderRole: "participant" | "merchant" =
+    profile?.role === "merchant" ? "merchant" : "participant";
+
+  const moderation = await moderateMessage(trimmed, senderRole);
+
+  if (moderation.verdict === "block") {
+    return {
+      ok: false,
+      blocked: true,
+      message:
+        moderation.category === "contact_info"
+          ? "Personal contact details cannot be shared on Rosterly. All communication must stay on platform."
+          : moderation.category === "off_platform"
+            ? "Please keep all communication on Rosterly. Off-platform arrangements are not covered by our safety policies."
+            : "This message could not be sent. Please keep communication professional and on platform.",
+    };
+  }
+
   const keyword = getFlaggedKeyword(trimmed);
+  const flagged =
+    moderation.verdict === "flag" ||
+    moderation.verdict === "warn" ||
+    !!keyword;
+
   const { error } = await supabase.from("messages").insert({
     chat_id: chatId,
     sender_id: user.id,
     body: trimmed,
-    flagged: !!keyword,
-    flagged_reason: keyword ?? null,
+    flagged,
+    flagged_reason: moderation.reason ?? keyword ?? null,
+    ai_verdict: moderation.verdict,
+    ai_category: moderation.category,
   });
 
   if (error) return { ok: false, error: "Could not send message." };
+
+  if (moderation.verdict === "flag") {
+    const adminIds = await getAdminUserIds();
+    for (const adminId of adminIds) {
+      await createNotification({
+        userId: adminId,
+        type: "report_filed",
+        title: "Flagged message detected",
+        body: `AI flagged a message for: ${moderation.category ?? "review"}`,
+        link: `/dashboard/admin/chats/${chatId}`,
+      });
+    }
+  }
+
+  if (moderation.verdict === "warn" && moderation.category === "off_platform") {
+    const admin = createAdminClient();
+    await admin.from("messages").insert({
+      chat_id: chatId,
+      sender_id: null,
+      body: "⚡ Reminder: Rosterly protects both parties. Payments, ratings and safety coverage only apply to on-platform bookings.",
+      flagged: false,
+      is_system: true,
+    });
+  }
+
   return { ok: true };
+}
+
+/** FormData wrapper for mobile chat thread. */
+export async function sendMessageFormAction(formData: FormData) {
+  const chatId = formData.get("chatId") as string;
+  const body = formData.get("body") as string;
+  if (!chatId || !body?.trim()) {
+    return { error: "Message cannot be empty." };
+  }
+  const result = await sendMessage(chatId, body);
+  if (result.blocked) {
+    return { blocked: true, message: result.message };
+  }
+  if (!result.ok) {
+    return { error: result.error ?? "Failed to send" };
+  }
+  return { success: true };
 }
 
 /** Report a user (optionally in context of a message). */
@@ -397,7 +483,9 @@ export async function getMessagesForAdmin(
   const supabase = await createClient();
   const { data: messages } = await supabase
     .from("messages")
-    .select("id, chat_id, sender_id, body, flagged, flagged_reason, created_at")
+    .select(
+      "id, chat_id, sender_id, body, flagged, flagged_reason, ai_verdict, ai_category, is_system, created_at"
+    )
     .eq("chat_id", chatId)
     .order("created_at", { ascending: true });
 

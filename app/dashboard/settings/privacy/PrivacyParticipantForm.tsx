@@ -50,7 +50,7 @@ export function PrivacyParticipantForm({
   return (
     <SettingsSectionCard
       title="Photo privacy"
-      description="Who can see your profile photo. Not enforced until feature flag is on."
+      description="Who can see your profile photo across the platform."
     >
       <RadioSettingGroup
         name="photo_visibility"
@@ -59,7 +59,7 @@ export function PrivacyParticipantForm({
         onChange={(v) => setVisibility(v)}
         aria-label="Photo visibility"
       />
-      <p className="mt-4 text-xs text-amber-700 dark:text-amber-300">
+      <p className="mt-4 text-xs text-[var(--color-warning)]">
         Hiding your photo may reduce booking chances.
       </p>
       <SaveBar onSave={handleSave} saving={saving} message={message} />

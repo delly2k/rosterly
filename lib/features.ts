@@ -11,4 +11,4 @@ export const merchantApplicantAvatars = false;
  * merchants_on_application, hidden). When false, app behaves as today (photo shown in
  * profile + team preview; merchants do not see avatar unless merchantApplicantAvatars is on).
  */
-export const PRIVACY_MODE_ENFORCEMENT = false;
+export const PRIVACY_MODE_ENFORCEMENT = true;

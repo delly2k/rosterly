@@ -24,7 +24,7 @@ export function RadioSettingGroup<T extends string>({
       {options.map((opt) => (
         <label
           key={opt.value}
-          className="flex cursor-pointer gap-3 rounded-lg border border-zinc-200 p-3 has-[:checked]:border-black has-[:checked]:ring-2 has-[:checked]:ring-black/20 dark:border-zinc-700 dark:has-[:checked]:border-zinc-300"
+          className="flex cursor-pointer gap-3 rounded-lg border border-[var(--color-border)] p-3 has-[:checked]:border-[var(--color-gold)] has-[:checked]:ring-2 has-[:checked]:ring-[var(--color-gold-border)]"
         >
           <input
             type="radio"
@@ -32,15 +32,11 @@ export function RadioSettingGroup<T extends string>({
             value={opt.value}
             checked={value === opt.value}
             onChange={() => onChange(opt.value as T)}
-            className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-500"
+            className="mt-0.5 h-4 w-4 border-[var(--color-border)] text-[var(--color-gold)] focus:ring-[var(--color-gold)]"
           />
           <div>
-            <span className="font-medium text-zinc-900 dark:text-zinc-100">
-              {opt.label}
-            </span>
-            <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
-              {opt.description}
-            </p>
+            <span className="font-medium text-[var(--color-ink)]">{opt.label}</span>
+            <p className="mt-0.5 text-sm text-[var(--color-ink-muted)]">{opt.description}</p>
           </div>
         </label>
       ))}

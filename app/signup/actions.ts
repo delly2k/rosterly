@@ -1,28 +1,79 @@
 "use server";
 
 import { createAdminClient } from "@/lib/auth";
+import type { Role } from "@/lib/roles";
+import { ROLES } from "@/lib/roles";
+
+type SignUpResult = {
+  userId: string;
+  role: Role;
+};
 
 /**
- * Create a new user with email already confirmed (no confirmation email sent).
- * Uses the Supabase Admin API so we avoid rate limits and don't require "Confirm email" in the dashboard.
- * Optional `userMetadata` is merged into `user_metadata` (e.g. merchant signup intent).
+ * Create auth user (email confirmed) and ensure profiles.role matches signup intent.
+ * Trigger on_auth_user_created always inserts profiles with role=participant; we
+ * patch merchant signups immediately via service role (bypasses RLS).
  */
-export async function signUpWithAutoConfirm(
+async function createUserWithRole(
   email: string,
   password: string,
-  userMetadata?: Record<string, unknown>
-) {
+  role: Role,
+  businessName?: string
+): Promise<SignUpResult> {
   const supabase = createAdminClient();
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    ...(userMetadata && Object.keys(userMetadata).length > 0
-      ? { user_metadata: userMetadata }
-      : {}),
   });
   if (error) {
     throw new Error(error.message);
   }
-  return data;
+
+  const userId = data.user?.id;
+  if (!userId) {
+    throw new Error("User creation failed");
+  }
+
+  if (role === ROLES.MERCHANT) {
+    const { error: roleError } = await supabase
+      .from("profiles")
+      .update({ role: ROLES.MERCHANT })
+      .eq("id", userId);
+    if (roleError) {
+      throw new Error(roleError.message);
+    }
+
+    const trimmedName = businessName?.trim();
+    if (trimmedName) {
+      const { error: profileError } = await supabase
+        .from("merchant_profiles")
+        .insert({
+          user_id: userId,
+          business_name: trimmedName,
+        });
+      if (profileError) {
+        throw new Error(profileError.message);
+      }
+    }
+  }
+
+  return { userId, role };
+}
+
+/** Talent (participant) signup — profile role stays participant from DB trigger. */
+export async function signUpParticipant(
+  email: string,
+  password: string
+): Promise<SignUpResult> {
+  return createUserWithRole(email, password, ROLES.PARTICIPANT);
+}
+
+/** Merchant signup — sets profiles.role to merchant and seeds merchant_profiles. */
+export async function signUpMerchant(
+  email: string,
+  password: string,
+  businessName: string
+): Promise<SignUpResult> {
+  return createUserWithRole(email, password, ROLES.MERCHANT, businessName);
 }

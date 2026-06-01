@@ -6,28 +6,17 @@ import { CreditCard, Check } from "lucide-react";
 import type { MerchantSubscriptionRow } from "@/lib/billing/types";
 import type { TierName, SubscriptionStatus } from "@/lib/billing/types";
 import { getTierLimits } from "@/lib/billing/tierConfig";
-import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { cancelTierAction } from "./actions";
 
-const cardBase =
-  "rounded-[4px] border-[3px] border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]";
-
 function StatusBadge({ status }: { status: SubscriptionStatus }) {
-  const styles: Record<SubscriptionStatus, string> = {
-    trialing: "bg-zinc-200 text-zinc-800 border-black dark:bg-zinc-700 dark:text-zinc-200",
-    active: "bg-green-200 text-green-900 border-black dark:bg-green-900/50 dark:text-green-200",
-    past_due: "bg-amber-200 text-amber-900 border-black dark:bg-amber-900/50 dark:text-amber-200",
-    canceled: "bg-red-200 text-red-900 border-black dark:bg-red-900/50 dark:text-red-200",
+  const className: Record<SubscriptionStatus, string> = {
+    trialing: "pill-gold",
+    active: "pill-green",
+    past_due: "pill-warning",
+    canceled: "pill-danger",
   };
   const label = status.charAt(0).toUpperCase() + status.slice(1);
-  return (
-    <span
-      className={`inline-flex rounded-[4px] border-2 px-2.5 py-1 text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${styles[status]}`}
-    >
-      {label}
-    </span>
-  );
+  return <span className={className[status]}>{label}</span>;
 }
 
 function formatTier(tier: TierName): string {
@@ -96,54 +85,59 @@ export function BillingSettingsClient({ subscription, activeGigsCount }: Props) 
 
   return (
     <div className="space-y-8">
-      {/* Usage */}
-      <div className={`${cardBase} bg-white`}>
-        <h2 className="text-lg font-bold text-black md:text-xl">Usage</h2>
-        <p className="mt-1 text-sm text-black/80">Active gigs vs plan limit</p>
-        <p className="mt-4 text-3xl font-bold tabular-nums text-black">
+      <div className="surface-card p-6">
+        <h2 className="admin-section-title">Usage</h2>
+        <p className="mt-1 text-sm text-[var(--color-ink-muted)]">Active gigs vs plan limit</p>
+        <p className="mt-4 text-3xl font-bold tabular-nums text-[var(--color-ink)]">
           {usageLabel}
           {usageCap != null && (
-            <span className="ml-2 text-base font-normal text-black/70">active gigs</span>
+            <span className="ml-2 text-base font-normal text-[var(--color-ink-muted)]">
+              active gigs
+            </span>
           )}
         </p>
       </div>
 
-      {/* Current plan */}
-      <div className={`${cardBase} border-[#84CC16] bg-[#84CC16]/20`}>
-        <CardTitle className="flex items-center gap-2 text-black">
-          <CreditCard className="h-5 w-5" />
-          Current plan
-        </CardTitle>
-        <CardDescription className="text-black/80">
+      <div className="surface-card border-[var(--color-gold-border)] bg-[var(--color-gold-light)] p-6">
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-[var(--color-gold)]" />
+          <h2 className="admin-section-title">Current plan</h2>
+        </div>
+        <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
           Your subscription and renewal.
-        </CardDescription>
+        </p>
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <span className="text-xl font-bold capitalize text-black">{formatTier(tier)}</span>
+          <span className="text-xl font-bold capitalize text-[var(--color-ink)]">
+            {formatTier(tier)}
+          </span>
           <StatusBadge status={status} />
           {sub?.current_period_end && status !== "canceled" && (
-            <span className="text-sm text-black/80">
-              Renewal: {new Date(sub.current_period_end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            <span className="text-sm text-[var(--color-ink-muted)]">
+              Renewal:{" "}
+              {new Date(sub.current_period_end).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
             </span>
           )}
         </div>
         {status !== "canceled" && (
           <div className="mt-4">
-            <Button
+            <button
               type="button"
-              variant="safety"
-              size="sm"
               onClick={() => setCancelModalOpen(true)}
+              className="btn-settings-danger"
             >
               Cancel subscription
-            </Button>
+            </button>
           </div>
         )}
       </div>
 
-      {/* Plan cards */}
       <div>
-        <h2 className="mb-4 text-lg font-bold text-black md:text-xl">Plans</h2>
-        <div className="grid gap-6 sm:grid-cols-3">
+        <h2 className="admin-section-title mb-4">Plans</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
           {(["starter", "growth", "pro"] as TierName[]).map((t) => {
             const isCurrent = t === tier;
             const isPopular = t === "growth";
@@ -155,32 +149,36 @@ export function BillingSettingsClient({ subscription, activeGigsCount }: Props) 
             return (
               <div
                 key={t}
-                className={`${cardBase} relative flex flex-col bg-white ${isPopular ? "border-[#06B6D4] ring-2 ring-[#06B6D4]/30" : ""}`}
+            className={`surface-card relative flex flex-col p-6 ${
+                  isCurrent
+                    ? "border-2 border-[var(--color-gold)] bg-[var(--color-gold-light)]"
+                    : ""
+                } ${isPopular && !isCurrent ? "border-[var(--color-gold)]" : ""}`}
               >
                 {isPopular && (
-                  <div className="absolute -top-3 left-4 rounded border-2 border-[#06B6D4] bg-[#06B6D4] px-2 py-0.5 text-xs font-bold text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="absolute -top-3 left-4 rounded-full bg-[var(--color-gold)] px-2 py-0.5 text-xs font-medium text-white">
                     Most Popular
                   </div>
                 )}
-                <h3 className="text-xl font-bold capitalize text-black">{formatTier(t)}</h3>
-                <p className="mt-2 text-sm text-black/80">{capText}</p>
+                <h3 className="text-xl font-bold capitalize text-[var(--color-ink)]">
+                  {formatTier(t)}
+                </h3>
+                <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{capText}</p>
                 <div className="mt-6 flex flex-1 flex-col justify-end">
                   {isCurrent ? (
-                    <span className="inline-flex items-center gap-2 rounded border-2 border-black bg-zinc-100 px-4 py-2 text-sm font-bold text-black">
+                    <span className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-page)] px-4 py-2 text-sm font-medium text-[var(--color-ink)]">
                       <Check className="h-4 w-4" />
                       Current plan
                     </span>
                   ) : (
-                    <Button
+                    <button
                       type="button"
-                      variant="secondary"
-                      size="sm"
                       onClick={() => handleUpgrade(t)}
                       disabled={upgrading !== null}
-                      className="mt-auto border-2 border-black font-bold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                      className="btn-settings-save mt-auto disabled:opacity-50"
                     >
                       {upgrading === t ? "Upgrading…" : "Upgrade"}
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
@@ -189,7 +187,6 @@ export function BillingSettingsClient({ subscription, activeGigsCount }: Props) 
         </div>
       </div>
 
-      {/* Cancel confirmation modal */}
       {cancelModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -197,41 +194,38 @@ export function BillingSettingsClient({ subscription, activeGigsCount }: Props) 
           aria-modal="true"
           aria-labelledby="cancel-modal-title"
         >
-          <div className="w-full max-w-md rounded-[4px] border-[3px] border-black bg-white p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <h2 id="cancel-modal-title" className="text-xl font-bold text-black">
+          <div className="surface-card w-full max-w-md p-6">
+            <h2 id="cancel-modal-title" className="admin-section-title">
               Cancel subscription?
             </h2>
-            <p className="mt-2 text-sm text-black/80">
+            <p className="mt-2 text-sm text-[var(--color-ink-muted)]">
               Your plan will be canceled. You can resubscribe anytime.
             </p>
             <div className="mt-6 flex gap-3">
-              <Button
+              <button
                 type="button"
-                variant="secondary"
-                size="sm"
                 onClick={() => setCancelModalOpen(false)}
                 disabled={canceling}
+                className="btn-settings-secondary"
               >
                 Keep plan
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant="safety"
-                size="sm"
                 onClick={handleCancelConfirm}
                 disabled={canceling}
+                className="btn-settings-danger"
               >
                 {canceling ? "Canceling…" : "Cancel subscription"}
-              </Button>
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Toast */}
       {toast && (
         <div
-          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[4px] border-2 border-black bg-[#84CC16] px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--color-gold)] px-4 py-2 text-sm font-medium text-white shadow-lg"
           role="status"
           aria-live="polite"
         >

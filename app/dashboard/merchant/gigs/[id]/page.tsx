@@ -7,6 +7,7 @@ import {
   getApplicationsForGig,
   getAttendanceForGig,
 } from "@/app/dashboard/merchant/gigs/actions";
+import { getMerchantRatingStatusForGig } from "@/app/dashboard/actions/ratings";
 import { createClient } from "@/lib/auth";
 import { GigDetailMerchant } from "./GigDetailMerchant";
 
@@ -20,9 +21,10 @@ export default async function MerchantGigDetailPage({
   const gig = await getGigForMerchant(id);
   if (!gig) notFound();
 
-  const [applications, attendance] = await Promise.all([
+  const [applications, attendance, completedRatingStatus] = await Promise.all([
     getApplicationsForGig(id),
     getAttendanceForGig(id),
+    getMerchantRatingStatusForGig(id),
   ]);
 
   const supabase = await createClient();
@@ -39,7 +41,7 @@ export default async function MerchantGigDetailPage({
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard/merchant/gigs"
-          className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="text-sm font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
         >
           ← Back to gigs
         </Link>
@@ -50,6 +52,7 @@ export default async function MerchantGigDetailPage({
         applications={applications}
         attendance={attendance}
         locked={locked}
+        completedRatingStatus={completedRatingStatus}
       />
     </div>
   );

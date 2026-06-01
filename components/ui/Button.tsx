@@ -2,30 +2,21 @@ import Link from "next/link";
 import { clsx } from "clsx";
 
 const base =
-  "inline-flex items-center justify-center border-[3px] border-black font-semibold transition-all duration-75 ease-out brutal-press focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:disabled:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] will-change-transform";
-
-const shadow =
-  "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]";
+  "inline-flex items-center justify-center font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[var(--color-gold)] focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
 
 const variants = {
-  primary:
-    "bg-[#1D4ED8] text-white " + shadow + " hover:bg-[#1e40af] active:bg-[#1e40af]",
-  secondary:
-    "bg-white text-black " + shadow + " hover:bg-gray-100 active:bg-gray-100",
-  success:
-    "bg-[#FDE047] text-black " + shadow + " hover:bg-[#facc15] active:bg-[#facc15]",
-  urgency:
-    "bg-[#F97316] text-black " + shadow + " hover:bg-[#ea580c] active:bg-[#ea580c]",
-  ghost:
-    "bg-transparent text-black border-black " + shadow + " hover:bg-gray-100 active:bg-gray-100",
-  safety:
-    "bg-[#dc2626] text-white " + shadow + " hover:bg-[#b91c1c] active:bg-[#b91c1c]",
+  primary: "btn-portal-primary",
+  secondary: "btn-portal-secondary",
+  success: "btn-portal-primary",
+  urgency: "btn-portal-secondary",
+  ghost: "btn-portal-secondary bg-transparent",
+  safety: "btn-portal-danger",
 };
 
 const sizes = {
-  sm: "h-12 px-4 text-sm min-h-[48px]",
-  md: "h-12 px-6 text-sm min-h-[48px]",
-  lg: "h-14 px-8 text-base min-h-[56px]",
+  sm: "min-h-[40px] px-4 text-sm",
+  md: "min-h-[44px] px-6 text-sm",
+  lg: "min-h-[48px] px-8 text-base",
 };
 
 type ButtonVariant = keyof typeof variants;

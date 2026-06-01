@@ -6,9 +6,7 @@ import { NotificationsParticipantForm } from "./NotificationsParticipantForm";
 import { NotificationsMerchantForm } from "./NotificationsMerchantForm";
 
 const notificationsBadge = (
-  <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-    App notifications only
-  </span>
+  <span className="pill-gold">App notifications only</span>
 );
 
 export default async function SettingsNotificationsPage() {

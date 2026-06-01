@@ -36,15 +36,15 @@ export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-4 block w-full overflow-hidden rounded-[4px] border-[2px] border-black bg-zinc-100 text-left focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+        className="mt-4 block w-full overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-page)] text-left focus:outline-none focus:ring-2 focus:ring-[var(--color-gold)] focus:ring-offset-2"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt={alt}
-          className="h-auto w-full cursor-zoom-in object-contain max-h-[400px]"
+          className="h-auto max-h-[400px] w-full cursor-zoom-in object-contain"
         />
-        <p className="py-2 text-center text-xs font-medium text-zinc-500">
+        <p className="py-2 text-center text-xs font-medium text-[var(--color-ink-muted)]">
           Click to zoom
         </p>
       </button>
@@ -56,13 +56,13 @@ export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
           aria-modal="true"
           aria-label={`Zoomed ${alt}`}
         >
-          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-zinc-700 bg-zinc-900 px-4 py-3">
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--color-border-strong)] bg-[var(--color-sidebar)] px-4 py-3">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={zoomOut}
                 disabled={zoomIndex <= 0}
-                className="rounded-[4px] border-2 border-black bg-white px-3 py-1.5 text-sm font-bold text-black disabled:opacity-40"
+                className="btn-admin-secondary text-xs disabled:opacity-40"
               >
                 − Zoom out
               </button>
@@ -73,7 +73,7 @@ export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
                 type="button"
                 onClick={zoomIn}
                 disabled={zoomIndex >= ZOOM_STEPS.length - 1}
-                className="rounded-[4px] border-2 border-black bg-white px-3 py-1.5 text-sm font-bold text-black disabled:opacity-40"
+                className="btn-admin-secondary text-xs disabled:opacity-40"
               >
                 + Zoom in
               </button>
@@ -81,7 +81,7 @@ export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-[4px] border-2 border-black bg-white px-4 py-2 text-sm font-bold text-black"
+              className="btn-admin-primary"
             >
               Close
             </button>

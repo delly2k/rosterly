@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Pencil, Trash2, Eye, Upload } from "lucide-react";
+import { Pencil, Trash2, Eye, Upload, UserPlus, Users, Phone, ShieldCheck, ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabaseClient";
 import {
   merchantOfficerIdDocPath,
@@ -63,7 +63,7 @@ export function MerchantOfficersClient({
   });
 
   const officerInputClass =
-    "w-full rounded-[4px] border-[3px] border-black bg-white px-3 py-2 text-zinc-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:bg-zinc-800 dark:text-zinc-100";
+    "input-refined w-full text-sm text-[var(--color-ink)]";
 
   const hasRequiredProfileFields = Boolean(
     profile?.business_name?.trim() && profile?.business_type?.trim()
@@ -204,306 +204,470 @@ export function MerchantOfficersClient({
     }
   }
 
-  return (
-    <div className="space-y-8">
-      <div className="rounded-[4px] border-[3px] border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-        <h2 className="section-title text-base">Responsible officers</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Add authorised officers. You need at least one and all required
-          profile fields filled (on your Profile page) before you can submit
-          verification.
-        </p>
+  const officerLabelClass = "mb-1 block text-sm font-medium text-[var(--color-ink-muted)]";
+  const isVerified = verificationStatus === "verified";
 
-        {/* Add officer form - inline on page */}
-        <div className="mt-6 rounded-[4px] border-[3px] border-black bg-zinc-50 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:bg-zinc-800/50 md:p-5">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Add responsible officer
-          </h3>
-          <form
-            onSubmit={officerForm.handleSubmit(onAddOfficer)}
-            className="mt-4 grid gap-4 sm:grid-cols-2"
+  return (
+    <div className="space-y-6">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 24,
+          alignItems: "start",
+          marginBottom: 24,
+        }}
+      >
+        <div
+          style={{
+            background: "white",
+            border: "0.5px solid var(--color-border)",
+            borderRadius: 12,
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 20,
+              paddingBottom: 16,
+              borderBottom: "0.5px solid var(--color-border)",
+            }}
           >
-            {officerForm.formState.errors.root && (
-              <p className="text-sm text-red-600 dark:text-red-400 sm:col-span-2">
-                {officerForm.formState.errors.root.message}
-              </p>
-            )}
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "var(--color-gold-light)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <UserPlus size={15} color="var(--color-gold)" />
+            </div>
             <div>
-              <label
-                htmlFor="officer-name"
-                className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Name
-              </label>
-              <input
-                id="officer-name"
-                type="text"
-                className={officerInputClass}
-                placeholder="Full name"
-                {...officerForm.register("name")}
-              />
-              {officerForm.formState.errors.name && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {officerForm.formState.errors.name.message}
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-ink)" }}>
+                Add responsible officer
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-ink-muted)" }}>
+                At least one officer required for verification
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={officerForm.handleSubmit(onAddOfficer)}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              {officerForm.formState.errors.root && (
+                <p className="text-sm text-red-600" style={{ gridColumn: "1 / -1" }}>
+                  {officerForm.formState.errors.root.message}
                 </p>
               )}
-            </div>
-            <div>
-              <label
-                htmlFor="officer-position"
-                className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              <div>
+                <label htmlFor="officer-name" className={officerLabelClass}>
+                  Name
+                </label>
+                <input
+                  id="officer-name"
+                  type="text"
+                  className={officerInputClass}
+                  placeholder="Full name"
+                  {...officerForm.register("name")}
+                />
+                {officerForm.formState.errors.name && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {officerForm.formState.errors.name.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="officer-position" className={officerLabelClass}>
+                  Position
+                </label>
+                <input
+                  id="officer-position"
+                  type="text"
+                  placeholder="e.g. Director, Manager"
+                  className={officerInputClass}
+                  {...officerForm.register("position")}
+                />
+              </div>
+              <div>
+                <label htmlFor="officer-email" className={officerLabelClass}>
+                  Email
+                </label>
+                <input
+                  id="officer-email"
+                  type="email"
+                  className={officerInputClass}
+                  placeholder="email@example.com"
+                  {...officerForm.register("email")}
+                />
+                {officerForm.formState.errors.email && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {officerForm.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="officer-phone" className={officerLabelClass}>
+                  Phone number
+                </label>
+                <input
+                  id="officer-phone"
+                  type="tel"
+                  className={officerInputClass}
+                  placeholder="+1 876 555 0100"
+                  {...officerForm.register("phone")}
+                />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label className={officerLabelClass}>Officer ID document</label>
+                <input
+                  ref={officerIdFileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  className="hidden"
+                  onChange={(e) => onOfficerIdFileChange(e, null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => officerIdFileInputRef.current?.click()}
+                  className="input-refined w-full px-3 py-2 text-left text-sm text-[var(--color-ink)]"
+                >
+                  {newOfficerIdFile ? newOfficerIdFile.name : "Choose ID document (required)"}
+                </button>
+                {newOfficerIdFile && (
+                  <p className="mt-1 text-xs text-[var(--color-ink-hint)]">
+                    Selected. Upload will happen when you click Add officer.
+                  </p>
+                )}
+              </div>
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
               >
-                Position
-              </label>
-              <input
-                id="officer-position"
-                type="text"
-                placeholder="e.g. Director, Manager"
-                className={officerInputClass}
-                {...officerForm.register("position")}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="officer-email"
-                className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Email
-              </label>
-              <input
-                id="officer-email"
-                type="email"
-                className={officerInputClass}
-                placeholder="email@example.com"
-                {...officerForm.register("email")}
-              />
-              {officerForm.formState.errors.email && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {officerForm.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label
-                htmlFor="officer-phone"
-                className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Phone number
-              </label>
-              <input
-                id="officer-phone"
-                type="tel"
-                className={officerInputClass}
-                placeholder="+1 234 567 8900"
-                {...officerForm.register("phone")}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Officer ID document
-              </label>
-              <input
-                ref={officerIdFileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                className="hidden"
-                onChange={(e) => onOfficerIdFileChange(e, null)}
-              />
-              <button
-                type="button"
-                onClick={() => officerIdFileInputRef.current?.click()}
-                className="rounded-[4px] border-[3px] border-black bg-white px-3 py-2 text-sm font-medium text-zinc-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-              >
-                {newOfficerIdFile ? newOfficerIdFile.name : "Choose ID document (required)"}
-              </button>
-              {newOfficerIdFile && (
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  Selected. Upload will happen when you click Add officer.
-                </p>
-              )}
-            </div>
-            <div className="sm:col-span-2">
-              <button
-                type="submit"
-                disabled={officerForm.formState.isSubmitting}
-                className="rounded-[4px] border-[3px] border-black bg-zinc-900 px-4 py-2 text-sm font-bold text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
-                {officerForm.formState.isSubmitting ? "Adding…" : "Add officer"}
-              </button>
+                <button
+                  type="submit"
+                  disabled={officerForm.formState.isSubmitting}
+                  className="btn-portal-primary text-sm disabled:opacity-50"
+                >
+                  {officerForm.formState.isSubmitting ? "Adding…" : "Add officer"}
+                </button>
+              </div>
             </div>
           </form>
         </div>
 
-        <div className="mt-6 overflow-hidden">
-          <table className="w-full table-fixed border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                <th className="w-[18%] py-2 text-left font-medium text-zinc-700 dark:text-zinc-300">
-                  Name
-                </th>
-                <th className="w-[14%] py-2 text-left font-medium text-zinc-700 dark:text-zinc-300">
-                  Position
-                </th>
-                <th className="w-[22%] py-2 text-left font-medium text-zinc-700 dark:text-zinc-300">
-                  Email
-                </th>
-                <th className="w-[16%] py-2 text-left font-medium text-zinc-700 dark:text-zinc-300">
-                  Phone
-                </th>
-                <th className="w-[14%] py-2" aria-label="ID status" />
-                <th className="w-[16%] py-2 text-right font-medium text-zinc-700 dark:text-zinc-300">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {initialOfficers.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="py-6 text-center text-zinc-500 dark:text-zinc-400"
+        <div
+          style={{
+            background: "white",
+            border: "0.5px solid var(--color-border)",
+            borderRadius: 12,
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 20,
+              paddingBottom: 16,
+              borderBottom: "0.5px solid var(--color-border)",
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "var(--color-gold-light)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Users size={15} color="var(--color-gold)" />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-ink)" }}>
+                Officers ({initialOfficers.length})
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-ink-muted)" }}>
+                Authorised representatives of your business
+              </div>
+            </div>
+          </div>
+
+          {initialOfficers.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "32px 0",
+                color: "var(--color-ink-muted)",
+                fontSize: 13,
+              }}
+            >
+              No officers added yet
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {initialOfficers.map((officer) => (
+                <div
+                  key={officer.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px 14px",
+                    background: "#FAFAF8",
+                    border: "0.5px solid var(--color-border)",
+                    borderRadius: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      background: "var(--color-gold-light)",
+                      border: "1px solid var(--color-gold-border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--color-gold)",
+                      flexShrink: 0,
+                    }}
                   >
-                    No officers yet. Add one to continue.
-                  </td>
-                </tr>
-              ) : (
-                initialOfficers.map((o) => (
-                  <tr
-                    key={o.id}
-                    className="border-b border-zinc-100 dark:border-zinc-800"
-                  >
-                    <td className="py-2 text-zinc-900 dark:text-zinc-100">
-                      <span className="block truncate" title={o.name}>{o.name}</span>
-                    </td>
-                    <td className="py-2 text-zinc-600 dark:text-zinc-400">
-                      <span className="block truncate" title={o.position ?? undefined}>{o.position ?? "—"}</span>
-                    </td>
-                    <td className="py-2 text-zinc-600 dark:text-zinc-400">
-                      <span className="block truncate" title={o.email ?? undefined}>{o.email ?? "—"}</span>
-                    </td>
-                    <td className="py-2 text-zinc-600 dark:text-zinc-400">
-                      <span className="block truncate" title={o.phone ?? undefined}>{o.phone ?? "—"}</span>
-                    </td>
-                    <td className="py-2">
-                      {!o.id_doc_url && (
-                        <>
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,application/pdf"
-                            className="hidden"
-                            id={`officer-id-${o.id}`}
-                            onChange={(e) => onOfficerIdFileChange(e, o.id)}
-                          />
-                          <label
-                            htmlFor={uploadingOfficerIdFor === o.id ? undefined : `officer-id-${o.id}`}
-                            className={`inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-zinc-700 underline hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100 ${uploadingOfficerIdFor === o.id ? "pointer-events-none opacity-50" : ""}`}
-                          >
-                            <Upload className="h-4 w-4" />
-                            {uploadingOfficerIdFor === o.id ? "Uploading…" : "Upload ID"}
-                          </label>
-                        </>
-                      )}
-                    </td>
-                    <td className="py-2 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {o.id_doc_url && (
-                          <button
-                            type="button"
-                            onClick={() => onViewId(o.id_doc_url!)}
-                            className="rounded p-1.5 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
-                            title="View ID"
-                            aria-label="View ID document"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setEditingOfficer(o)}
-                          className="rounded p-1.5 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
-                          title="Edit officer"
-                          aria-label="Edit officer"
+                    {officer.name
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-ink)" }}>
+                      {officer.name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--color-ink-muted)",
+                        marginTop: 2,
+                      }}
+                    >
+                      {officer.position || "—"} · {officer.email || "—"}
+                    </div>
+                    {!officer.id_doc_url && (
+                      <>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          className="hidden"
+                          id={`officer-id-${officer.id}`}
+                          onChange={(e) => onOfficerIdFileChange(e, officer.id)}
+                        />
+                        <label
+                          htmlFor={
+                            uploadingOfficerIdFor === officer.id
+                              ? undefined
+                              : `officer-id-${officer.id}`
+                          }
+                          className={`mt-1 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-[var(--color-gold)] underline ${
+                            uploadingOfficerIdFor === officer.id
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }`}
                         >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDeleteOfficer(o.id)}
-                          disabled={deleteId === o.id}
-                          className="rounded p-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/50 dark:hover:text-red-300"
-                          title="Remove officer"
-                          aria-label="Remove officer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                          <Upload size={11} />
+                          {uploadingOfficerIdFor === officer.id
+                            ? "Uploading…"
+                            : "Upload ID document"}
+                        </label>
+                      </>
+                    )}
+                  </div>
+
+                  {officer.phone && (
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--color-ink-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Phone size={11} /> {officer.phone}
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    {officer.id_doc_url && (
+                      <button
+                        type="button"
+                        title="View ID"
+                        onClick={() => onViewId(officer.id_doc_url!)}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 6,
+                          border: "0.5px solid var(--color-border)",
+                          background: "white",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "var(--color-ink-muted)",
+                        }}
+                      >
+                        <Eye size={13} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      title="Edit"
+                      onClick={() => setEditingOfficer(officer)}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 6,
+                        border: "0.5px solid var(--color-border)",
+                        background: "white",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--color-ink-muted)",
+                      }}
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete"
+                      onClick={() => onDeleteOfficer(officer.id)}
+                      disabled={deleteId === officer.id}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 6,
+                        border: "0.5px solid rgba(220,38,38,0.2)",
+                        background: "var(--color-danger-light)",
+                        cursor: deleteId === officer.id ? "not-allowed" : "pointer",
+                        opacity: deleteId === officer.id ? 0.6 : 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--color-danger)",
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Verification */}
-      <div className="space-y-4">
-        {verificationStatus === "pending" && (
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-200">
-            Your verification is under review. You cannot post gigs until
-            approved.
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "16px 20px",
+          borderRadius: 12,
+          background: isVerified ? "var(--color-green-light)" : "var(--color-warning-light)",
+          border: `0.5px solid ${
+            isVerified ? "var(--color-green-border)" : "rgba(217,119,6,0.3)"
+          }`,
+        }}
+      >
+        {isVerified ? (
+          <ShieldCheck size={20} color="var(--color-green)" />
+        ) : (
+          <ShieldAlert size={20} color="var(--color-warning)" />
+        )}
+        <div>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: isVerified ? "var(--color-green)" : "var(--color-warning)",
+            }}
+          >
+            {isVerified
+              ? "Verified — you can post gigs"
+              : verificationStatus === "pending"
+                ? "Verification under review"
+                : "Verification pending or incomplete"}
           </div>
-        )}
-        {verificationStatus === "verified" && (
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-200">
-            You are verified. You can post gigs.
+          <div style={{ fontSize: 12, color: "var(--color-ink-muted)", marginTop: 2 }}>
+            {isVerified
+              ? "Your business has been verified by the Rosterly team."
+              : verificationStatus === "pending"
+                ? "Your verification is under review. You cannot post gigs until approved."
+                : "Add at least one officer and complete your business profile to submit for verification."}
           </div>
-        )}
-
-        {showVerificationBlock && (
-          <>
-            {rejected && (
-              <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
-                Your previous verification was rejected. You may submit again
-                with a new document once the requirements below are met.
-              </div>
-            )}
-
-            {!canVerify && (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Complete your{" "}
-                <Link
-                  href="/dashboard/merchant/profile"
-                  className="font-medium text-zinc-900 underline dark:text-zinc-100"
-                >
-                  Profile
-                </Link>{" "}
-                (business name and type), add at least one responsible officer
-                with an ID document uploaded above, then you can submit
-                verification.
-              </p>
-            )}
-
-            {verifyError && (
-              <div
-                className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200"
-                role="alert"
-              >
-                {verifyError}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={onVerificationSubmit}
-              disabled={!canVerify}
-              className="rounded-[4px] border-[3px] border-black bg-zinc-900 px-4 py-2 text-sm font-bold text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-800 disabled:opacity-50 disabled:shadow-none dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              Submit verification
-            </button>
-          </>
-        )}
+        </div>
       </div>
+
+      {showVerificationBlock && (
+        <div className="space-y-4">
+          {rejected && (
+            <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Your previous verification was rejected. You may submit again with a new
+              document once the requirements below are met.
+            </div>
+          )}
+
+          {!canVerify && (
+            <p className="text-sm text-[var(--color-ink-muted)]">
+              Complete your{" "}
+              <Link
+                href="/dashboard/merchant/profile"
+                className="font-medium text-[var(--color-ink)] underline"
+              >
+                Profile
+              </Link>{" "}
+              (business name and type), add at least one responsible officer with an ID
+              document uploaded above, then you can submit verification.
+            </p>
+          )}
+
+          {verifyError && (
+            <div
+              className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+              role="alert"
+            >
+              {verifyError}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onVerificationSubmit}
+            disabled={!canVerify}
+            className="btn-portal-primary text-sm disabled:opacity-50 disabled:shadow-none"
+          >
+            Submit verification
+          </button>
+        </div>
+      )}
 
       {/* Edit officer modal */}
       {editingOfficer && (
@@ -513,8 +677,8 @@ export function MerchantOfficersClient({
           aria-modal="true"
           aria-labelledby="edit-officer-title"
         >
-          <div className="w-full max-w-md rounded-[4px] border-[3px] border-black bg-white p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:bg-zinc-900">
-            <h3 id="edit-officer-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <div className="w-full max-w-md surface-card p-6">
+            <h3 id="edit-officer-title" className="text-lg font-semibold text-[var(--color-ink)]">
               Edit officer
             </h3>
             <form
@@ -522,23 +686,23 @@ export function MerchantOfficersClient({
               className="mt-4 space-y-4"
             >
               {editForm.formState.errors.root && (
-                <p className="text-sm text-red-600 dark:text-red-400">
+                <p className="text-sm text-red-600">
                   {editForm.formState.errors.root.message}
                 </p>
               )}
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
+                <label className="mb-1 block text-sm font-medium text-[var(--color-ink-muted)]">Name</label>
                 <input
                   type="text"
                   className={officerInputClass}
                   {...editForm.register("name")}
                 />
                 {editForm.formState.errors.name && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{editForm.formState.errors.name.message}</p>
+                  <p className="mt-1 text-sm text-red-600">{editForm.formState.errors.name.message}</p>
                 )}
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Position</label>
+                <label className="mb-1 block text-sm font-medium text-[var(--color-ink-muted)]">Position</label>
                 <input
                   type="text"
                   placeholder="e.g. Director, Manager"
@@ -547,28 +711,28 @@ export function MerchantOfficersClient({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Email</label>
+                <label className="mb-1 block text-sm font-medium text-[var(--color-ink-muted)]">Email</label>
                 <input type="email" className={officerInputClass} {...editForm.register("email")} />
                 {editForm.formState.errors.email && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{editForm.formState.errors.email.message}</p>
+                  <p className="mt-1 text-sm text-red-600">{editForm.formState.errors.email.message}</p>
                 )}
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Phone number</label>
+                <label className="mb-1 block text-sm font-medium text-[var(--color-ink-muted)]">Phone number</label>
                 <input type="tel" className={officerInputClass} {...editForm.register("phone")} />
               </div>
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
                   disabled={editForm.formState.isSubmitting}
-                  className="rounded-[4px] border-[3px] border-black bg-zinc-900 px-4 py-2 text-sm font-bold text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="btn-portal-primary text-sm disabled:opacity-50"
                 >
                   {editForm.formState.isSubmitting ? "Saving…" : "Save"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingOfficer(null)}
-                  className="rounded-[4px] border-[3px] border-black bg-white px-4 py-2 text-sm font-bold text-zinc-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                  className="rounded-[4px] bg-white px-4 py-2 text-sm font-bold text-[var(--color-ink)] hover:bg-zinc-100"
                 >
                   Cancel
                 </button>

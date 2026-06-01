@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function BlockedPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F3F4F6] px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F4F3EF] px-4">
       <Card className="w-full max-w-md space-y-4 p-8 text-center">
         <CardTitle className="text-xl">Account restricted</CardTitle>
         <CardDescription>

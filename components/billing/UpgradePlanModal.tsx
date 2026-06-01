@@ -2,9 +2,6 @@
 
 import Link from "next/link";
 
-const modalBase =
-  "rounded-[4px] border-[3px] border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]";
-
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -27,23 +24,16 @@ export function UpgradePlanModal({
       aria-modal="true"
       aria-labelledby="upgrade-modal-title"
     >
-      <div className={`w-full max-w-md bg-white ${modalBase}`}>
-        <h2 id="upgrade-modal-title" className="text-xl font-bold text-black">
+      <div className="surface-card w-full max-w-md p-6">
+        <h2 id="upgrade-modal-title" className="portal-section-title text-xl">
           {title}
         </h2>
-        <p className="mt-2 text-sm text-black/80">{message}</p>
+        <p className="mt-2 text-sm text-[var(--color-ink-muted)]">{message}</p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex rounded-[4px] border-[3px] border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-100"
-          >
+          <button type="button" onClick={onClose} className="btn-portal-secondary text-sm">
             Close
           </button>
-          <Link
-            href="/dashboard/settings/billing"
-            className="inline-flex rounded-[4px] border-[3px] border-black bg-[#84CC16] px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#A3E635]"
-          >
+          <Link href="/dashboard/settings/billing" className="btn-portal-primary text-sm">
             Go to billing
           </Link>
         </div>

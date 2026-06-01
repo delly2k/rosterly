@@ -78,7 +78,7 @@ export function PrivacyMerchantForm({
         />
       </SettingsSectionCard>
 
-      <div className="rounded-[4px] border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6">
+      <div className="surface-card p-4 sm:p-6">
         <SaveBar
           onSave={handleSave}
           saving={saving}

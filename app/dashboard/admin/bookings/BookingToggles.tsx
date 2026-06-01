@@ -49,13 +49,15 @@ export function BookingToggles({
   return (
     <div className="flex items-center justify-end gap-2">
       {error && (
-        <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+        <span className="text-xs text-[var(--color-danger)]">{error}</span>
       )}
       <button
         type="button"
         onClick={togglePayment}
         disabled={!!loading}
-        className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 disabled:opacity-50"
+        className={
+          paymentConfirmed ? "btn-admin-secondary text-xs" : "btn-admin-primary text-xs"
+        }
       >
         {loading === "payment" ? "…" : paymentConfirmed ? "Unconfirm payment" : "Confirm payment"}
       </button>
@@ -63,7 +65,9 @@ export function BookingToggles({
         type="button"
         onClick={toggleTransport}
         disabled={!!loading}
-        className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 disabled:opacity-50"
+        className={
+          transportAssigned ? "btn-admin-secondary text-xs" : "btn-admin-primary text-xs"
+        }
       >
         {loading === "transport" ? "…" : transportAssigned ? "Unassign transport" : "Assign transport"}
       </button>

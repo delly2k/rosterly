@@ -23,19 +23,19 @@ export default async function AdminChatPage({
   if (!chat) notFound();
 
   return (
-    <div className="space-y-6">
+    <div className="page-bg space-y-6">
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard/admin/chats"
-          className="text-sm font-bold text-black underline underline-offset-2 hover:no-underline"
+          className="text-sm font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
         >
           ← Chats
         </Link>
       </div>
-      <div className="rounded-[4px] border-[3px] border-black bg-[#FDE047] px-4 py-2 text-sm font-medium text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div className="rounded-xl border border-[rgba(217,119,6,0.3)] bg-[var(--color-warning-light)] px-4 py-2 text-sm font-medium text-[var(--color-warning)]">
         Read-only. Flagged messages are highlighted for moderation.
       </div>
-      <h1 className="page-title tracking-tight">
+      <h1 className="admin-page-title">
         {chat.gig?.title ?? "Chat"} (admin view)
       </h1>
       <ChatThread

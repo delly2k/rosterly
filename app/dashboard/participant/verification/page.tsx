@@ -1,70 +1,60 @@
 import { requireRole } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
-import Link from "next/link";
-import {
-  getVerificationStatus,
-} from "@/app/dashboard/participant/actions";
+import { getVerificationStatus } from "@/app/dashboard/participant/actions";
+import { VerificationBanner } from "@/components/dashboard/VerificationBanner";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { VerificationBadge } from "../VerificationBadge";
 import { VerificationForm } from "./VerificationForm";
+import { ShieldCheck } from "lucide-react";
 
 export default async function ParticipantVerificationPage() {
   await requireRole(ROLES.PARTICIPANT);
   const { status, latestVerification, profileComplete } = await getVerificationStatus();
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <h1 className="page-title tracking-tight">
-          Identity verification
-        </h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Upload an ID document and a selfie. Admin approval is required to
-          become verified.
-        </p>
-        <div className="mt-4">
-          <VerificationBadge status={status} />
-        </div>
-      </div>
+    <div className="page-bg">
+      <div style={{ padding: "32px 40px" }} className="space-y-6 sm:space-y-8">
+      <PageHeader
+        icon={ShieldCheck}
+        title="Identity verification"
+        description="Verified profiles are shown first to merchants and unlock more gig opportunities. We review submissions manually — usually within 1–2 business days."
+        action={<VerificationBadge status={status} />}
+      />
 
       {status === "pending" && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-200">
-          Your verification is under review. You will not be able to change
-          your name or profile photo after submission.
+        <div className="surface-card border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] p-4 sm:p-5">
+          <p className="text-sm leading-relaxed text-[var(--color-warning)]">
+            Your verification is under review. You will not be able to change your name or
+            profile photo after submission.
+          </p>
+          <p className="mt-3 text-sm text-[var(--color-ink-muted)]">
+            Submitted. An admin will review your documents shortly — usually within 1–2 business
+            days.
+          </p>
         </div>
       )}
 
       {status === "verified" && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-200">
-          You are verified. Your identity documents are on file.
+        <div className="surface-card border-[var(--color-green-border)] bg-[var(--color-green-light)] p-4 sm:p-5">
+          <p className="text-sm leading-relaxed text-[var(--color-green)]">
+            You are verified. Your identity documents are on file.
+          </p>
         </div>
       )}
 
       {status === "unverified" && !profileComplete && (
-        <div className="rounded-[4px] border-[3px] border-black bg-[#FDE047] p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-          <p className="font-bold text-black">
-            Complete your profile before verification
-          </p>
-          <p className="mt-2 text-sm text-black/90">
-            Your full name (and optionally photo) must be set before we can process verification. Name and photo are locked after you submit.
-          </p>
-          <Link
-            href="/dashboard/participant/profile"
-            className="mt-4 inline-block rounded-[4px] border-[3px] border-black bg-[#1D4ED8] px-4 py-3 text-sm font-bold text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-[#1e40af] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-          >
-            Go to Profile
-          </Link>
-        </div>
+        <VerificationBanner
+          href="/dashboard/participant/profile"
+          title="Complete your profile before verification"
+          subtitle="Your full name must be set before we can process verification. Name and photo are locked after you submit."
+          ctaLabel="Go to Profile →"
+        />
       )}
 
       {status === "unverified" && profileComplete && (
         <VerificationForm latestStatus={latestVerification?.status} />
       )}
-
-      {status === "pending" && (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Submitted. An admin will review your documents shortly.
-        </p>
-      )}
+      </div>
     </div>
   );
 }

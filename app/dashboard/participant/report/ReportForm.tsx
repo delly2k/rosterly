@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabaseClient";
+import { submitReport } from "@/app/dashboard/participant/report/actions";
 
 export function ReportForm() {
   const router = useRouter();
@@ -22,25 +22,13 @@ export function ReportForm() {
     }
     setSubmitting(true);
     try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setError("You must be signed in to report.");
-        setSubmitting(false);
-        return;
-      }
-
-      const { error: insertError } = await supabase.from("reports").insert({
-        reporter_id: user.id,
-        category: category || null,
+      const result = await submitReport({
+        category,
         description: description.trim(),
-        status: "pending",
       });
 
-      if (insertError) {
-        setError("Could not submit report. Please try again.");
+      if ("error" in result) {
+        setError(result.error);
         setSubmitting(false);
         return;
       }
@@ -56,16 +44,16 @@ export function ReportForm() {
 
   if (done) {
     return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-950/50">
-        <p className="font-medium text-green-800 dark:text-green-200">
+      <div className="rounded-lg border border-green-200 bg-green-50 p-6">
+        <p className="font-medium text-green-800">
           Report submitted
         </p>
-        <p className="mt-1 text-sm text-green-700 dark:text-green-300">
+        <p className="mt-1 text-sm text-green-700">
           Thank you. Our team will review it.
         </p>
         <Link
           href="/dashboard/participant/safety"
-          className="mt-4 inline-block text-sm font-medium text-green-800 underline dark:text-green-200"
+          className="mt-4 inline-block text-sm font-medium text-green-800 underline"
         >
           Back to Safety
         </Link>
@@ -77,7 +65,7 @@ export function ReportForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
         <div
-          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-200"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
           role="alert"
         >
           {error}
@@ -87,13 +75,13 @@ export function ReportForm() {
       <div>
         <label
           htmlFor="category"
-          className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          className="mb-1 block text-sm font-medium text-[var(--color-ink-muted)]"
         >
           Category (optional)
         </label>
         <select
           id="category"
-          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          className="input-refined w-full text-sm text-[var(--color-ink)]"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
@@ -108,14 +96,14 @@ export function ReportForm() {
       <div>
         <label
           htmlFor="description"
-          className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          className="mb-1 block text-sm font-medium text-[var(--color-ink-muted)]"
         >
           Description (required)
         </label>
         <textarea
           id="description"
           rows={4}
-          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          className="input-refined w-full text-sm text-[var(--color-ink)]"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
@@ -126,13 +114,13 @@ export function ReportForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="btn-portal-primary"
         >
           {submitting ? "Submitting…" : "Submit report"}
         </button>
         <Link
           href="/dashboard/participant/safety"
-          className="inline-flex items-center text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="inline-flex items-center text-sm font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
         >
           Cancel
         </Link>

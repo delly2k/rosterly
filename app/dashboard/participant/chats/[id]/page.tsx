@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
-import { getChat, getMessages } from "@/app/actions/chat";
+import { getMessages, sendMessageFormAction } from "@/app/actions/chat";
 import { getCurrentUser } from "@/lib/auth";
-import { ChatThread } from "@/components/chat/ChatThread";
+import { getChatForParticipantMobile } from "@/lib/chats";
+import { ParticipantChatPageView } from "./ParticipantChatPageView";
 
 export default async function ParticipantChatPage({
   params,
@@ -17,37 +17,26 @@ export default async function ParticipantChatPage({
   if (!current?.user) notFound();
 
   const [chat, messages] = await Promise.all([
-    getChat(chatId),
+    getChatForParticipantMobile(chatId, current.user.id),
     getMessages(chatId),
   ]);
   if (!chat) notFound();
 
-  const otherPartyUserId =
-    chat.participant_user_id === current.user.id
-      ? chat.merchant_user_id
-      : chat.participant_user_id;
+  const gigRaw = chat.gigs;
+  const gigTitle = Array.isArray(gigRaw)
+    ? gigRaw[0]?.title
+    : gigRaw?.title;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href="/dashboard/participant/chats"
-          className="text-sm font-bold text-black underline underline-offset-2 hover:no-underline"
-        >
-          ← Chats
-        </Link>
-      </div>
-      <h1 className="page-title tracking-tight">
-        {chat.gig?.title ?? "Chat"}
-      </h1>
-      <ChatThread
-        chatId={chat.id}
-        currentUserId={current.user.id}
-        otherPartyUserId={otherPartyUserId}
-        initialMessages={messages}
-        isAdmin={false}
-        showReportBlock={true}
-      />
-    </div>
+    <ParticipantChatPageView
+      chat={{
+        ...chat,
+        merchant_profiles: { business_name: chat.merchantName },
+      }}
+      chatTitle={gigTitle ?? "Chat"}
+      currentUserId={current.user.id}
+      initialMessages={messages}
+      sendAction={sendMessageFormAction}
+    />
   );
 }

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/auth";
 import { AuthError } from "@/lib/auth";
 import { isProfileComplete } from "@/lib/participant";
-import { PHOTO_VISIBILITY_VALUES, type PhotoVisibility } from "@/lib/photo-privacy";
+import { calculateCompletion } from "@/lib/participant-profile-completion";
+import { PHOTO_VISIBILITY_VALUES, normalizePhotoVisibility, type PhotoVisibility } from "@/lib/photo-privacy";
 import type { VerificationStatusDisplay } from "@/types/participant";
 
 export type ParticipantProfileForm = {
@@ -116,7 +117,8 @@ export async function upsertParticipantProfile(
 }
 
 export async function updatePhotoVisibility(visibility: string): Promise<{ ok: boolean; error?: string }> {
-  if (!PHOTO_VISIBILITY_VALUES.includes(visibility as PhotoVisibility)) {
+  const normalized = normalizePhotoVisibility(visibility);
+  if (!PHOTO_VISIBILITY_VALUES.includes(normalized)) {
     return { ok: false, error: "Invalid visibility value." };
   }
   const supabase = await createClient();
@@ -128,7 +130,7 @@ export async function updatePhotoVisibility(visibility: string): Promise<{ ok: b
   const { error } = await supabase
     .from("participant_profiles")
     .update({
-      photo_visibility: visibility,
+      photo_visibility: normalized,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", user.id);
@@ -202,32 +204,40 @@ export async function submitVerification(idDocUrl: string, selfieUrl: string) {
     );
   }
 
-  const { error } = await supabase.from("verifications").insert({
-    user_id: user.id,
-    type: "participant_id",
-    id_doc_url: idDocUrl,
-    selfie_url: selfieUrl,
-    status: "pending",
-  });
+  const { data: verification, error } = await supabase
+    .from("verifications")
+    .insert({
+      user_id: user.id,
+      type: "participant_id",
+      id_doc_url: idDocUrl,
+      selfie_url: selfieUrl,
+      status: "pending",
+    })
+    .select("id")
+    .single();
 
   if (error) throw new AuthError("Could not submit verification.");
+
+  const { getAdminUserIds, notifyAdminsVerificationSubmitted } = await import(
+    "@/lib/notifications"
+  );
+  const submitterName =
+    profile?.full_name?.trim() || user.email?.split("@")[0] || "A user";
+  const adminIds = await getAdminUserIds();
+  if (verification) {
+    await notifyAdminsVerificationSubmitted(
+      adminIds,
+      submitterName,
+      verification.id
+    );
+    const { triggerVerificationAiAnalysis } = await import(
+      "@/lib/trigger-verification-ai-analysis"
+    );
+    triggerVerificationAiAnalysis(verification.id);
+  }
+
   revalidatePath("/dashboard/participant");
   revalidatePath("/dashboard/participant/verification");
-}
-
-export async function logSosEvent() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new AuthError("Authentication required");
-
-  const { error } = await supabase.from("sos_events").insert({
-    user_id: user.id,
-  });
-
-  if (error) throw new AuthError("Could not log event.");
-  revalidatePath("/dashboard/participant");
 }
 
 /** Outcomes of reports where the current user was the reported party. Only resolved/dismissed; only id, status, outcome_message, updated_at. */
@@ -255,43 +265,124 @@ export async function getReportOutcomesForCurrentUser(): Promise<ReportOutcomeRo
   return (data ?? []) as ReportOutcomeRow[];
 }
 
+function countSkills(raw: unknown): number {
+  if (!Array.isArray(raw)) return 0;
+  return raw.filter((s): s is string => typeof s === "string" && s.trim().length > 0).length;
+}
+
 /** Dashboard payload: reused queries only, no new backend logic. */
 export type ParticipantDashboardData = {
   verificationStatus: VerificationStatusDisplay;
   profileComplete: boolean;
   profileCompletionPercent: number;
+  profileCompletionMissing: string[];
   photoVisibilityMode: string | null;
+  hasName: boolean;
+  hasBio: boolean;
+  hasAnySkills: boolean;
+  hasSkills: boolean;
+  hasRate: boolean;
+  hasAvailability: boolean;
+  hasLocation: boolean;
+  reputationScore: number;
+  averageRating: number | null;
+  totalRatings: number;
+  verified: boolean;
+  gigsCompleted: number;
   nextConfirmedGig: { bookingId: string; gigTitle: string; startTime: string | null; status: string } | null;
-  upcomingBookings: { bookingId: string; gigTitle: string; startTime: string | null; status: string; teamLabel?: string }[];
+  upcomingBookings: {
+    bookingId: string;
+    gigTitle: string;
+    startTime: string | null;
+    status: string;
+    locationGeneral: string | null;
+    payRate: number | null;
+    teamLabel?: string;
+  }[];
   applicationCounts: { pending: number; accepted: number; rejected: number };
-  recentChats: { id: string; gigTitle: string; createdAt: string }[];
+  recentChats: {
+    id: string;
+    gigTitle: string;
+    merchantName: string;
+    created_at: string;
+  }[];
   reportOutcomes: ReportOutcomeRow[];
+  userId: string;
+  bookingsForEarnings: {
+    status: string;
+    startTime: string | null;
+    endTime: string | null;
+    payRate: number | null;
+  }[];
 };
 
 export async function getParticipantDashboardData(): Promise<ParticipantDashboardData | null> {
-  const [verification, profile, bookings, applications, chats, reportOutcomes] = await Promise.all([
-    getVerificationStatus(),
-    getParticipantProfile(),
-    import("@/app/dashboard/participant/bookings/actions").then((m) => m.listMyBookings()),
-    import("@/app/dashboard/participant/gigs/actions").then((m) => m.listMyApplications()),
-    import("@/app/actions/chat").then((m) => m.listMyChats()),
-    getReportOutcomesForCurrentUser(),
-  ]);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
 
-  const profileRow = profile as { full_name?: string | null; bio?: string | null; rate?: number | null; photo_url?: string | null; photo_visibility?: string | null } | null;
-  let profileCompletionPercent = 0;
-  if (profileRow) {
-    if (profileRow.full_name?.trim()) profileCompletionPercent += 40;
-    if (profileRow.bio?.trim()) profileCompletionPercent += 20;
-    if (profileRow.rate != null && profileRow.rate > 0) profileCompletionPercent += 20;
-    if (profileRow.photo_url?.trim()) profileCompletionPercent += 20;
-  }
+  const [verification, profile, bookings, applications, reportOutcomes, recentChats] =
+    await Promise.all([
+      getVerificationStatus(),
+      getParticipantProfile(),
+      import("@/app/dashboard/participant/bookings/actions").then((m) => m.listMyBookings()),
+      import("@/app/dashboard/participant/gigs/actions").then((m) => m.listMyApplications()),
+      getReportOutcomesForCurrentUser(),
+      user
+        ? import("@/lib/chats").then((m) => m.getRecentChatsForDashboard(user.id, 3))
+        : Promise.resolve([]),
+    ]);
+
+  const profileRow = profile as {
+    full_name?: string | null;
+    bio?: string | null;
+    location_general?: string | null;
+    rate?: number | null;
+    photo_url?: string | null;
+    photo_visibility?: string | null;
+    skills?: unknown;
+    availability?: unknown;
+    reputation_score?: number | null;
+    average_rating?: number | null;
+    total_ratings?: number | null;
+    verified?: boolean;
+  } | null;
+
+  const { pct: profileCompletionPercent, missing: profileCompletionMissing } =
+    calculateCompletion(profileRow);
+
+  const skillsCount = countSkills(profileRow?.skills);
+  const hasName = !profileCompletionMissing.includes("Full name");
+  const hasBio = !profileCompletionMissing.includes("Bio");
+  const hasLocation = !profileCompletionMissing.includes("Location");
+  const hasRate = !profileCompletionMissing.includes("Hourly rate");
+  const hasAnySkills = skillsCount > 0;
+  const hasSkills = !profileCompletionMissing.includes("At least 1 skill");
+  const hasAvailability = !profileCompletionMissing.includes("Availability");
 
   const now = new Date();
   const withGig = bookings.filter((b) => {
     const g = Array.isArray(b.gigs) ? b.gigs[0] : b.gigs;
     return g && (b.status === "confirmed" || b.status === "pending" || b.status === "completed");
-  }) as { id: string; status: string; gigs: { title?: string; start_time?: string | null } | { title?: string; start_time?: string | null }[] }[];
+  }) as {
+    id: string;
+    status: string;
+    gigs:
+      | {
+          title?: string;
+          start_time?: string | null;
+          location_general?: string | null;
+          pay_rate?: number | null;
+        }
+      | {
+          title?: string;
+          start_time?: string | null;
+          location_general?: string | null;
+          pay_rate?: number | null;
+        }[];
+  }[];
   const sorted = [...withGig].sort((a, b) => {
     const gA = Array.isArray(a.gigs) ? a.gigs[0] : a.gigs;
     const gB = Array.isArray(b.gigs) ? b.gigs[0] : b.gigs;
@@ -319,26 +410,52 @@ export async function getParticipantDashboardData(): Promise<ParticipantDashboar
       gigTitle: g?.title ?? "Gig",
       startTime: g?.start_time ?? null,
       status: b.status,
+      locationGeneral: g?.location_general ?? null,
+      payRate: g?.pay_rate ?? null,
     };
   });
+
+  const gigsCompleted = bookings.filter(
+    (b: { status: string }) => b.status === "completed"
+  ).length;
 
   const pending = applications.filter((a: { status: string }) => a.status === "pending").length;
   const accepted = applications.filter((a: { status: string }) => a.status === "accepted").length;
   const rejected = applications.filter((a: { status: string }) => a.status === "rejected").length;
 
-  const recentChats = (chats as { id: string; gig?: { title?: string }; created_at: string }[])
-    .slice(0, 3)
-    .map((c) => ({ id: c.id, gigTitle: c.gig?.title ?? "Chat", createdAt: c.created_at }));
-
   return {
     verificationStatus: verification.status,
     profileComplete: verification.profileComplete,
     profileCompletionPercent,
+    profileCompletionMissing,
     photoVisibilityMode: profileRow?.photo_visibility ?? null,
+    hasName,
+    hasBio,
+    hasAnySkills,
+    hasSkills,
+    hasRate,
+    hasAvailability,
+    hasLocation,
+    reputationScore: profileRow?.reputation_score ?? 0,
+    averageRating:
+      profileRow?.average_rating != null ? Number(profileRow.average_rating) : null,
+    totalRatings: profileRow?.total_ratings ?? 0,
+    verified: profileRow?.verified ?? verification.status === "verified",
+    gigsCompleted,
     nextConfirmedGig,
     upcomingBookings,
     applicationCounts: { pending, accepted, rejected },
     recentChats,
     reportOutcomes,
+    userId: user.id,
+    bookingsForEarnings: bookings.map((b) => {
+      const g = Array.isArray(b.gigs) ? b.gigs[0] : b.gigs;
+      return {
+        status: b.status,
+        startTime: g?.start_time ?? null,
+        endTime: g?.end_time ?? null,
+        payRate: g?.pay_rate != null ? Number(g.pay_rate) : null,
+      };
+    }),
   };
 }

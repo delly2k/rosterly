@@ -44,7 +44,7 @@ export function SettingsTopTabs({ role }: { role: Role }) {
       aria-label="Settings"
     >
       <div
-        className="flex w-full min-w-0 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800/50"
+        className="flex w-full min-w-0 rounded-xl bg-[var(--color-page)] p-1"
         role="tablist"
       >
         {navItems.map(({ href, label, icon: Icon }) => {
@@ -57,8 +57,8 @@ export function SettingsTopTabs({ role }: { role: Role }) {
               aria-selected={active}
               className={`relative flex flex-1 shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors md:flex-initial ${
                 active
-                  ? "rounded-lg bg-[#84CC16] text-zinc-900 shadow-sm"
-                  : "text-zinc-600 hover:bg-zinc-200/80 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                  ? "bg-[var(--color-gold)] text-white shadow-sm"
+                  : "text-[var(--color-ink-muted)] hover:bg-[var(--color-card)] hover:text-[var(--color-ink)]"
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />

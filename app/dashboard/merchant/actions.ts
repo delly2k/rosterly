@@ -35,6 +35,10 @@ export async function upsertMerchantProfile(input: MerchantProfileForm) {
     business_name: input.business_name ?? null,
     business_type: input.business_type ?? null,
     address: input.address ?? null,
+    street_address: input.street_address ?? null,
+    city: input.city ?? null,
+    parish: input.parish ?? null,
+    postal_code: input.postal_code ?? null,
     trn: input.trn ?? null,
     payment_method: input.payment_method ?? null,
     updated_at: new Date().toISOString(),
@@ -261,15 +265,45 @@ export async function submitMerchantVerification(officerIdDocUrl: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new AuthError("Authentication required");
 
-  const { error } = await supabase.from("verifications").insert({
-    user_id: user.id,
-    type: "merchant_officer",
-    id_doc_url: officerIdDocUrl,
-    selfie_url: null,
-    status: "pending",
-  });
+  const { data: verification, error } = await supabase
+    .from("verifications")
+    .insert({
+      user_id: user.id,
+      type: "merchant_officer",
+      id_doc_url: officerIdDocUrl,
+      selfie_url: null,
+      status: "pending",
+    })
+    .select("id")
+    .single();
 
   if (error) throw new AuthError("Could not submit verification.");
+
+  const { data: merchantProfile } = await supabase
+    .from("merchant_profiles")
+    .select("business_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const { getAdminUserIds, notifyAdminsVerificationSubmitted } = await import(
+    "@/lib/notifications"
+  );
+  const submitterName =
+    merchantProfile?.business_name?.trim() ||
+    user.email?.split("@")[0] ||
+    "A merchant";
+  const adminIds = await getAdminUserIds();
+  if (verification) {
+    await notifyAdminsVerificationSubmitted(
+      adminIds,
+      submitterName,
+      verification.id
+    );
+    const { triggerVerificationAiAnalysis } = await import(
+      "@/lib/trigger-verification-ai-analysis"
+    );
+    triggerVerificationAiAnalysis(verification.id);
+  }
+
   revalidatePath("/dashboard/merchant");
   revalidatePath("/dashboard/merchant/profile");
 }

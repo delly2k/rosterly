@@ -43,7 +43,7 @@ export default function LegalAcknowledgmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F4F3EF] flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-lg">
         <CardTitle>{PAYMENT_DISCLOSURE_TITLE}</CardTitle>
         <CardDescription>
@@ -51,7 +51,7 @@ export default function LegalAcknowledgmentPage() {
         </CardDescription>
 
         <div
-          className="mt-4 max-h-48 overflow-y-auto rounded border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300"
+          className="mt-4 max-h-48 overflow-y-auto rounded border border-[#E5E3DC] bg-zinc-50 px-4 py-3 text-sm text-zinc-700"
           role="document"
         >
           {PAYMENT_DISCLOSURE_CONTENT.split("\n").map((line, i) => (
@@ -63,7 +63,7 @@ export default function LegalAcknowledgmentPage() {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+            <p className="text-sm text-red-600" role="alert">
               {error}
             </p>
           )}
@@ -72,9 +72,9 @@ export default function LegalAcknowledgmentPage() {
               type="checkbox"
               checked={checked}
               onChange={(e) => setChecked(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500"
+              className="mt-1 h-4 w-4 rounded border-[#E5E3DC] text-zinc-900 focus:ring-zinc-500"
             />
-            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm text-zinc-700">
               {PAYMENT_DISCLOSURE_CHECKBOX_LABEL}
             </span>
           </label>
@@ -88,7 +88,7 @@ export default function LegalAcknowledgmentPage() {
             </button>
             <Link
               href="/dashboard"
-              className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              className="rounded-md border border-[#E5E3DC] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
             >
               Cancel
             </Link>

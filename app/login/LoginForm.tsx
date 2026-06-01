@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createClient } from "@/lib/supabaseClient";
-import { Button } from "@/components/ui/Button";
+import { signInWithPassword } from "@/app/login/actions";
 
 const schema = z.object({
   email: z.string().email("Invalid email"),
@@ -15,14 +15,16 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-const AUTH_ERROR_MESSAGE = "Invalid email or password. Please try again.";
+const ROLES = ["Participant", "Merchant"] as const;
+type VisualRole = (typeof ROLES)[number];
 
-const inputClass =
-  "w-full rounded-[4px] border-[3px] border-black bg-white px-4 py-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] focus:ring-2 focus:ring-[#1D4ED8] min-h-[48px]";
+const inputClass = "input-refined w-full text-sm text-[var(--color-ink)]";
+const passwordInputClass = `${inputClass} !pr-11`;
 
 export function LoginForm({ redirectTo }: { redirectTo?: string }) {
-  const router = useRouter();
   const [genericError, setGenericError] = useState<string | null>(null);
+  const [visualRole, setVisualRole] = useState<VisualRole>("Participant");
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -35,83 +37,86 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
 
   async function onSubmit(data: FormData) {
     setGenericError(null);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-      if (error) {
-        setGenericError(AUTH_ERROR_MESSAGE);
-        return;
-      }
-      const redirect = redirectTo ?? "/dashboard";
-      router.push(redirect);
-      router.refresh();
-    } catch {
-      setGenericError(AUTH_ERROR_MESSAGE);
+    const result = await signInWithPassword(
+      data.email,
+      data.password,
+      redirectTo
+    );
+    if (result && !result.ok) {
+      setGenericError(result.error);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)}>
       {genericError && (
-        <div
-          className="rounded-[4px] border-[3px] border-black bg-[#F97316] px-4 py-3 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-          role="alert"
-        >
+        <div className="login-auth-banner login-auth-banner--error" role="alert">
           {genericError}
         </div>
       )}
-      <div>
-        <label
-          htmlFor="login-email"
-          className="mb-2 block text-sm font-bold text-black"
-        >
-          Email
-        </label>
+
+      <div className="login-role-toggle" role="group" aria-label="Account type">
+        {ROLES.map((role) => (
+          <button
+            key={role}
+            type="button"
+            className={`login-role-btn${visualRole === role ? " is-active" : ""}`}
+            onClick={() => setVisualRole(role)}
+            aria-pressed={visualRole === role}
+          >
+            {role}
+          </button>
+        ))}
+      </div>
+
+      <div className="login-auth-field">
         <input
           id="login-email"
           type="email"
           autoComplete="email"
+          placeholder="Email address"
           className={inputClass}
+          aria-invalid={!!errors.email}
           {...register("email")}
         />
         {errors.email && (
-          <p className="mt-2 text-sm font-medium text-black">
-            {errors.email.message}
-          </p>
+          <p className="login-auth-field-error">{errors.email.message}</p>
         )}
       </div>
-      <div>
-        <label
-          htmlFor="login-password"
-          className="mb-2 block text-sm font-bold text-black"
-        >
-          Password
-        </label>
-        <input
-          id="login-password"
-          type="password"
-          autoComplete="current-password"
-          className={inputClass}
-          {...register("password")}
-        />
+
+      <div className="login-auth-field">
+        <div className="login-auth-password-wrap">
+          <input
+            id="login-password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder="Password"
+            className={passwordInputClass}
+            aria-invalid={!!errors.password}
+            {...register("password")}
+          />
+          <button
+            type="button"
+            className="login-auth-password-toggle"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         {errors.password && (
-          <p className="mt-2 text-sm font-medium text-black">
-            {errors.password.message}
-          </p>
+          <p className="login-auth-field-error">{errors.password.message}</p>
         )}
       </div>
-      <Button
-        type="submit"
-        disabled={isSubmitting}
-        variant="primary"
-        size="md"
-        className="w-full"
-      >
+
+      <Link href="/forgot-password" className="login-auth-forgot">
+        Forgot password?
+      </Link>
+
+      <button type="submit" className="login-auth-submit" disabled={isSubmitting}>
         {isSubmitting ? "Signing in…" : "Sign in"}
-      </Button>
+      </button>
     </form>
   );
 }

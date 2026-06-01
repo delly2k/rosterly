@@ -9,6 +9,10 @@ export type MerchantProfile = {
   business_name: string | null;
   business_type: string | null;
   address: string | null;
+  street_address: string | null;
+  city: string | null;
+  parish: string | null;
+  postal_code: string | null;
   trn: string | null;
   payment_method: string | null;
   disclaimer_accepted_at: string | null;
@@ -21,6 +25,10 @@ export type MerchantProfileForm = {
   business_name: string | null;
   business_type: string | null;
   address: string | null;
+  street_address?: string | null;
+  city?: string | null;
+  parish?: string | null;
+  postal_code?: string | null;
   trn: string | null;
   payment_method: string | null;
   /** When true, store disclaimer_accepted_at on save so the checkbox persists. */

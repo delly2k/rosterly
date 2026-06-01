@@ -1,9 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/auth";
 import { AuthError } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import {
+  createNotification,
+  notifyBookingConfirmed,
+  notifyBookingDeclined,
+  notifyParticipantCheckedIn,
+} from "@/lib/notifications";
+import { PRIVACY_MODE_ENFORCEMENT } from "@/lib/features";
+import { resolveParticipantPhotoUrl } from "@/lib/photo-privacy";
 import { hasAcceptedPaymentDisclosure } from "@/app/legal/actions";
 import { LEGAL_ACKNOWLEDGMENT_REQUIRED_MESSAGE } from "@/lib/legal";
 
@@ -42,6 +51,7 @@ export async function listMyBookings() {
         id,
         title,
         location_general,
+        pay_rate,
         start_time,
         end_time,
         status
@@ -67,7 +77,7 @@ export async function acceptBooking(bookingId: string) {
 
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, status")
+    .select("id, status, gig_id")
     .eq("id", bookingId)
     .eq("participant_user_id", user.id)
     .single();
@@ -89,9 +99,120 @@ export async function acceptBooking(bookingId: string) {
 
   await logAudit("booking", bookingId, "accepted", {});
 
+  const { data: gig } = await supabase
+    .from("gigs")
+    .select("id, merchant_user_id")
+    .eq("id", booking.gig_id)
+    .single();
+  const { data: profile } = await supabase
+    .from("participant_profiles")
+    .select("full_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const participantName =
+    profile?.full_name?.trim() || user.email?.split("@")[0] || "A participant";
+  if (gig?.merchant_user_id) {
+    await notifyBookingConfirmed(
+      gig.merchant_user_id,
+      participantName,
+      gig.id
+    );
+  }
+
   revalidatePath("/dashboard/participant/bookings");
   revalidatePath("/dashboard/participant/bookings/calendar");
   revalidatePath(`/dashboard/participant/bookings/${bookingId}`);
+}
+
+export async function acceptBookingAction(formData: FormData) {
+  const bookingId = formData.get("bookingId") as string;
+  if (!bookingId) redirect("/dashboard/participant/bookings");
+
+  try {
+    await acceptBooking(bookingId);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Could not accept booking.";
+    redirect(
+      `/dashboard/participant/bookings/${bookingId}?error=${encodeURIComponent(msg)}`
+    );
+  }
+
+  redirect(`/dashboard/participant/bookings/${bookingId}`);
+}
+
+export async function declineBooking(formData: FormData) {
+  const bookingId = formData.get("bookingId") as string;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/dashboard/participant/bookings");
+
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, participant_user_id, status, gig_id")
+    .eq("id", bookingId)
+    .single();
+
+  if (!booking || booking.participant_user_id !== user.id) {
+    redirect("/dashboard/participant/bookings");
+  }
+
+  if (booking.status !== "pending") {
+    redirect(`/dashboard/participant/bookings/${bookingId}`);
+  }
+
+  await supabase
+    .from("bookings")
+    .update({
+      status: "cancelled",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", bookingId);
+
+  await supabase
+    .from("applications")
+    .update({
+      status: "pending",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("gig_id", booking.gig_id)
+    .eq("participant_user_id", user.id);
+
+  await logAudit("booking", bookingId, "declined", { gig_id: booking.gig_id });
+
+  const { data: gig } = await supabase
+    .from("gigs")
+    .select("id, merchant_user_id, title")
+    .eq("id", booking.gig_id)
+    .single();
+  const { data: profile } = await supabase
+    .from("participant_profiles")
+    .select("full_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const participantName =
+    profile?.full_name?.trim() || user.email?.split("@")[0] || "A participant";
+  if (gig?.merchant_user_id) {
+    await notifyBookingDeclined(
+      gig.merchant_user_id,
+      participantName,
+      gig.id
+    );
+  }
+
+  const gigTitle = gig?.title ?? "your gig";
+  await createNotification({
+    userId: booking.participant_user_id,
+    type: "booking_cancelled",
+    title: "Booking cancelled",
+    body: `Your booking for "${gigTitle}" has been cancelled.`,
+    link: `/dashboard/participant/bookings`,
+  });
+
+  revalidatePath("/dashboard/participant/bookings");
+  revalidatePath(`/dashboard/participant/bookings/${bookingId}`);
+  redirect("/dashboard/participant/bookings");
 }
 
 export async function getBookingForParticipant(bookingId: string) {
@@ -103,7 +224,26 @@ export async function getBookingForParticipant(bookingId: string) {
 
   const { data: booking } = await supabase
     .from("bookings")
-    .select("*, gigs(*)")
+    .select(
+      `
+      id,
+      status,
+      accepted_at,
+      role_in_gig,
+      participant_user_id,
+      gig_id,
+      gigs (
+        title,
+        location_general,
+        pay_rate,
+        start_time,
+        end_time,
+        duties,
+        merchant_user_id,
+        gig_locations ( location_exact )
+      )
+    `
+    )
     .eq("id", bookingId)
     .eq("participant_user_id", user.id)
     .single();
@@ -134,7 +274,40 @@ export async function getGigTeamPreview(gigId: string): Promise<TeamPreviewMembe
     p_gig_id: gigId,
   });
   if (error) return [];
-  return (data ?? []) as TeamPreviewMember[];
+
+  const members = (data ?? []) as TeamPreviewMember[];
+  if (!PRIVACY_MODE_ENFORCEMENT) return members;
+
+  return members.map((m) => ({
+    ...m,
+    photo_url: resolveParticipantPhotoUrl(m.photo_url, null, { viewer: "team_peer" }),
+  }));
+}
+
+export async function checkInAction(formData: FormData) {
+  const bookingId = formData.get("bookingId") as string;
+  const lat = formData.get("lat") ? parseFloat(formData.get("lat") as string) : null;
+  const lon = formData.get("lon") ? parseFloat(formData.get("lon") as string) : null;
+  if (!bookingId) return { error: "Missing booking" };
+  try {
+    await recordCheckin(bookingId, "in", lat, lon);
+    return { success: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Check-in failed" };
+  }
+}
+
+export async function checkOutAction(formData: FormData) {
+  const bookingId = formData.get("bookingId") as string;
+  const lat = formData.get("lat") ? parseFloat(formData.get("lat") as string) : null;
+  const lon = formData.get("lon") ? parseFloat(formData.get("lon") as string) : null;
+  if (!bookingId) return { error: "Missing booking" };
+  try {
+    await recordCheckin(bookingId, "out", lat, lon);
+    return { success: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Check-out failed" };
+  }
 }
 
 export async function recordCheckin(
@@ -189,6 +362,29 @@ export async function recordCheckin(
       type,
       has_location: lat != null && lon != null,
     });
+
+  if (type === "in") {
+    const { data: gig } = await supabase
+      .from("gigs")
+      .select("id, title, merchant_user_id")
+      .eq("id", booking.gig_id)
+      .single();
+    const { data: profile } = await supabase
+      .from("participant_profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const participantName =
+      profile?.full_name?.trim() || user.email?.split("@")[0] || "A participant";
+    if (gig?.merchant_user_id) {
+      await notifyParticipantCheckedIn(
+        gig.merchant_user_id,
+        participantName,
+        gig.title,
+        gig.id
+      );
+    }
+  }
 
   revalidatePath(`/dashboard/participant/bookings/${bookingId}`);
   revalidatePath("/dashboard/participant/bookings");

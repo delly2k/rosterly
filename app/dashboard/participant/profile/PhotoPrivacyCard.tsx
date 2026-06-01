@@ -62,9 +62,9 @@ export function PhotoPrivacyCard({ initialVisibility }: PhotoPrivacyCardProps) {
   }
 
   return (
-    <Card className="border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-6 md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-      <CardTitle className="text-black">Photo privacy</CardTitle>
-      <CardDescription className="text-black/80">
+    <Card className="bg-white p-4 sm:p-6 md:">
+      <CardTitle className="text-[var(--color-ink)]">Photo privacy</CardTitle>
+      <CardDescription className="text-[var(--color-ink-muted)]">
         Control when and where your profile photo is visible. Admins can always see it for safety and disputes.
       </CardDescription>
 
@@ -72,7 +72,7 @@ export function PhotoPrivacyCard({ initialVisibility }: PhotoPrivacyCardProps) {
         {OPTIONS.map((opt) => (
           <label
             key={opt.value}
-            className="flex cursor-pointer gap-3 rounded-lg border border-zinc-200 p-3 has-[:checked]:border-black has-[:checked]:ring-2 has-[:checked]:ring-black/20 dark:border-zinc-700 dark:has-[:checked]:border-zinc-300"
+            className="flex cursor-pointer gap-3 rounded-lg border border-[var(--color-border)] p-3 has-[:checked]:border-[var(--color-gold)] has-[:checked]:bg-[var(--color-gold-light)]"
           >
             <input
               type="radio"
@@ -80,23 +80,23 @@ export function PhotoPrivacyCard({ initialVisibility }: PhotoPrivacyCardProps) {
               value={opt.value}
               checked={visibility === opt.value}
               onChange={() => setVisibility(opt.value)}
-              className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-500"
+              className="mt-0.5 h-4 w-4 border-[#E5E3DC] text-[var(--color-ink)] focus:ring-zinc-500"
             />
             <div>
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">{opt.label}</span>
-              <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">{opt.description}</p>
+              <span className="font-medium text-[var(--color-ink)]">{opt.label}</span>
+              <p className="mt-0.5 text-sm text-[var(--color-ink-muted)]">{opt.description}</p>
             </div>
           </label>
         ))}
       </div>
 
-      <p className="mt-4 text-xs text-amber-700 dark:text-amber-300">
+      <p className="mt-4 text-xs text-amber-700">
         Hiding your photo may reduce booking chances.
       </p>
 
       {message && (
         <p
-          className={`mt-3 text-sm ${message.type === "ok" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+          className={`mt-3 text-sm ${message.type === "ok" ? "text-green-600" : "text-red-600"}`}
           role="status"
         >
           {message.text}
@@ -107,7 +107,7 @@ export function PhotoPrivacyCard({ initialVisibility }: PhotoPrivacyCardProps) {
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="mt-4 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="mt-4 btn-portal-primary"
       >
         {saving ? "Saving…" : "Save photo privacy"}
       </button>

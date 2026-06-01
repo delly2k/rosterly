@@ -29,6 +29,9 @@ export type Gig = {
   pay_rate: number | null;
   payment_method_dummy: string | null;
   location_general: string | null;
+  location_street: string | null;
+  location_city: string | null;
+  location_parish: string | null;
   start_time: string | null;
   end_time: string | null;
   status: GigStatus;
@@ -40,6 +43,9 @@ export type Gig = {
 export type GigLocation = {
   gig_id: string;
   location_exact: string | null;
+  street_address: string | null;
+  city: string | null;
+  parish: string | null;
 };
 
 export type Application = {

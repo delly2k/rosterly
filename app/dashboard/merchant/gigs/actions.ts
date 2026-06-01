@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/auth";
 import { AuthError } from "@/lib/auth";
+import { resolveParticipantPhotoUrl } from "@/lib/photo-privacy";
 import { logAudit } from "@/lib/audit";
+import {
+  notifyApplicationRejected,
+  notifyBookingOffer,
+} from "@/lib/notifications";
 import { LOCKED_BOOKING_STATUSES } from "@/types/gig";
 import type { GigStatus } from "@/types/gig";
 import { isMerchantVerified } from "@/app/dashboard/merchant/actions";
@@ -16,6 +21,9 @@ export type CreateGigInput = {
   duties: string[];
   pay_rate: number | null;
   payment_method_dummy: string | null;
+  location_street?: string | null;
+  location_city?: string | null;
+  location_parish?: string | null;
   location_general: string | null;
   location_exact: string | null;
   start_time: string | null;
@@ -23,6 +31,37 @@ export type CreateGigInput = {
   status: GigStatus;
   spots: number;
 };
+
+function resolveGigLocation(input: {
+  location_street?: string | null;
+  location_city?: string | null;
+  location_parish?: string | null;
+  location_general?: string | null;
+  location_exact?: string | null;
+}) {
+  const street = input.location_street?.trim() || null;
+  const city = input.location_city?.trim() || null;
+  const parish = input.location_parish?.trim() || null;
+
+  if (street || city || parish) {
+    return {
+      location_street: street,
+      location_city: city,
+      location_parish: parish,
+      location_general: [city, parish].filter(Boolean).join(", ") || null,
+      location_exact:
+        [street, city, parish, "Jamaica"].filter(Boolean).join(", ") || null,
+    };
+  }
+
+  return {
+    location_street: null,
+    location_city: null,
+    location_parish: null,
+    location_general: input.location_general?.trim() || null,
+    location_exact: input.location_exact?.trim() || null,
+  };
+}
 
 export async function createGig(input: CreateGigInput) {
   const accepted = await hasAcceptedPaymentDisclosure();
@@ -40,10 +79,13 @@ export async function createGig(input: CreateGigInput) {
 
   const usage = await getUsageSummary(user.id);
   if (usage && !usage.canCreateGig) {
+    const { notifyPlanLimitReached } = await import("@/lib/notifications");
+    await notifyPlanLimitReached(user.id);
     throw new AuthError(PLAN_LIMIT_REACHED);
   }
 
   const spots = Math.max(1, Number(input.spots) || 1);
+  const location = resolveGigLocation(input);
   const { data: gig, error: gigError } = await supabase
     .from("gigs")
     .insert({
@@ -52,7 +94,10 @@ export async function createGig(input: CreateGigInput) {
       duties: input.duties ?? [],
       pay_rate: input.pay_rate,
       payment_method_dummy: input.payment_method_dummy,
-      location_general: input.location_general?.trim() || null,
+      location_street: location.location_street,
+      location_city: location.location_city,
+      location_parish: location.location_parish,
+      location_general: location.location_general,
       start_time: input.start_time || null,
       end_time: input.end_time || null,
       status: input.status ?? "draft",
@@ -63,10 +108,13 @@ export async function createGig(input: CreateGigInput) {
 
   if (gigError || !gig) throw new AuthError("Could not create gig.");
 
-  if (input.location_exact?.trim()) {
+  if (location.location_exact) {
     await supabase.from("gig_locations").insert({
       gig_id: gig.id,
-      location_exact: input.location_exact.trim(),
+      location_exact: location.location_exact,
+      street_address: location.location_street,
+      city: location.location_city,
+      parish: location.location_parish,
     });
   }
 
@@ -100,6 +148,9 @@ export type UpdateGigInput = {
   duties?: string[];
   pay_rate?: number | null;
   payment_method_dummy?: string | null;
+  location_street?: string | null;
+  location_city?: string | null;
+  location_parish?: string | null;
   location_general?: string | null;
   location_exact?: string | null;
   start_time?: string | null;
@@ -154,8 +205,20 @@ export async function updateGig(gigId: string, input: UpdateGigInput) {
     gigRow.pay_rate = input.pay_rate;
   if (input.payment_method_dummy !== undefined && !locked)
     gigRow.payment_method_dummy = input.payment_method_dummy;
-  if (input.location_general !== undefined && !locked)
-    gigRow.location_general = input.location_general?.trim() || null;
+  if (
+    (input.location_general !== undefined ||
+      input.location_street !== undefined ||
+      input.location_city !== undefined ||
+      input.location_parish !== undefined ||
+      input.location_exact !== undefined) &&
+    !locked
+  ) {
+    const location = resolveGigLocation(input);
+    gigRow.location_street = location.location_street;
+    gigRow.location_city = location.location_city;
+    gigRow.location_parish = location.location_parish;
+    gigRow.location_general = location.location_general;
+  }
   if (input.start_time !== undefined) gigRow.start_time = input.start_time;
   if (input.end_time !== undefined) gigRow.end_time = input.end_time;
   if (input.status !== undefined) gigRow.status = input.status;
@@ -171,15 +234,24 @@ export async function updateGig(gigId: string, input: UpdateGigInput) {
   if (gigError) throw new AuthError("Could not update gig.");
 
   if (
-    input.location_exact !== undefined &&
+    (input.location_exact !== undefined ||
+      input.location_street !== undefined ||
+      input.location_city !== undefined ||
+      input.location_parish !== undefined ||
+      input.location_general !== undefined) &&
     !locked
   ) {
-    await supabase
-      .from("gig_locations")
-      .upsert(
-        { gig_id: gigId, location_exact: input.location_exact?.trim() || null },
-        { onConflict: "gig_id" }
-      );
+    const location = resolveGigLocation(input);
+    await supabase.from("gig_locations").upsert(
+      {
+        gig_id: gigId,
+        location_exact: location.location_exact,
+        street_address: location.location_street,
+        city: location.location_city,
+        parish: location.location_parish,
+      },
+      { onConflict: "gig_id" }
+    );
   }
 
   await logAudit("gig", gigId, "updated", { locked, keys: Object.keys(input) });
@@ -244,7 +316,7 @@ export async function getGigForMerchant(gigId: string) {
   const [locationRes, countRes] = await Promise.all([
     supabase
       .from("gig_locations")
-      .select("location_exact")
+      .select("location_exact, street_address, city, parish")
       .eq("gig_id", gigId)
       .single(),
     supabase
@@ -260,17 +332,33 @@ export async function getGigForMerchant(gigId: string) {
   return {
     ...gig,
     location_exact,
+    location_street:
+      gig.location_street ?? locationRes.data?.street_address ?? null,
+    location_city: gig.location_city ?? locationRes.data?.city ?? null,
+    location_parish: gig.location_parish ?? locationRes.data?.parish ?? null,
     spots: gig.spots ?? 1,
     spots_filled,
   };
 }
 
-/** Display-only participant fields for merchants (excludes address, phone, emergency_contact). */
-export type ApplicantDisplay = {
+/** Participant profile fields visible to merchants for an application. */
+export type ApplicantProfileSnapshot = {
   full_name: string | null;
+  photo_url: string | null;
   bio: string | null;
-  location_general: string | null;
+  skills: unknown;
+  availability: unknown;
   rate: number | null;
+  verified: boolean;
+  reputation_score: number;
+  average_rating: number | null;
+  total_ratings: number;
+};
+
+export type ApplicantCertificate = {
+  levelTitle: string;
+  levelSubtitle: string;
+  badge_color: string;
 };
 
 export type ApplicationWithApplicant = {
@@ -279,8 +367,44 @@ export type ApplicationWithApplicant = {
   participant_user_id: string;
   status: string;
   created_at: string;
-  participant_display: ApplicantDisplay | null;
+  participant_profiles: ApplicantProfileSnapshot | null;
+  academy_certificates: ApplicantCertificate[];
 };
+
+function mapApplicantProfile(
+  profile: {
+    full_name: string | null;
+    photo_url: string | null;
+    photo_visibility?: string | null;
+    bio: string | null;
+    skills: unknown;
+    availability: unknown;
+    rate: number | null;
+    verified: boolean;
+    reputation_score: number | null;
+    average_rating: number | null;
+    total_ratings: number | null;
+  },
+  hasConfirmedBooking: boolean
+): ApplicantProfileSnapshot {
+  return {
+    full_name: profile.full_name ?? null,
+    photo_url: resolveParticipantPhotoUrl(profile.photo_url, profile.photo_visibility, {
+      viewer: "merchant",
+      hasApplication: true,
+      hasConfirmedBooking,
+    }),
+    bio: profile.bio ?? null,
+    skills: profile.skills ?? [],
+    availability: profile.availability ?? {},
+    rate: profile.rate != null ? Number(profile.rate) : null,
+    verified: profile.verified ?? false,
+    reputation_score: profile.reputation_score ?? 0,
+    average_rating:
+      profile.average_rating != null ? Number(profile.average_rating) : null,
+    total_ratings: profile.total_ratings ?? 0,
+  };
+}
 
 export async function getApplicationsForGig(gigId: string): Promise<ApplicationWithApplicant[]> {
   const supabase = await createClient();
@@ -298,34 +422,163 @@ export async function getApplicationsForGig(gigId: string): Promise<ApplicationW
 
   if (!gig) return [];
 
-  const { data: rows } = await supabase
+  const { data: rows, error: joinError } = await supabase
     .from("applications")
-    .select("id, gig_id, participant_user_id, status, created_at")
+    .select(
+      `
+      id,
+      status,
+      created_at,
+      participant_user_id,
+      gig_id,
+      participant_profiles (
+        full_name,
+        photo_url,
+        photo_visibility,
+        bio,
+        skills,
+        availability,
+        rate,
+        verified,
+        reputation_score,
+        average_rating,
+        total_ratings
+      )
+    `
+    )
     .eq("gig_id", gigId)
     .order("created_at", { ascending: false });
 
-  if (!rows?.length) return [];
+  if (joinError || !rows?.length) {
+    const { data: fallbackRows } = await supabase
+      .from("applications")
+      .select("id, gig_id, participant_user_id, status, created_at")
+      .eq("gig_id", gigId)
+      .order("created_at", { ascending: false });
+
+    if (!fallbackRows?.length) return [];
+
+    const participantIds = [...new Set(fallbackRows.map((r) => r.participant_user_id))];
+    const { data: profiles } = await supabase
+      .from("participant_profiles")
+      .select(
+        "user_id, full_name, photo_url, photo_visibility, bio, skills, availability, rate, verified, reputation_score, average_rating, total_ratings"
+      )
+      .in("user_id", participantIds);
+
+    const confirmedBookingParticipantIds = await getConfirmedBookingParticipantIds(
+      supabase,
+      user.id,
+      participantIds
+    );
+
+    const profileByUserId = new Map(
+      (profiles ?? []).map((p) => [
+        p.user_id,
+        mapApplicantProfile(p, confirmedBookingParticipantIds.has(p.user_id)),
+      ])
+    );
+
+    const certsByUserFallback = await import("@/lib/academy").then((m) =>
+      m.getValidCertificatesForUsers(participantIds)
+    );
+
+    return fallbackRows.map((r) => {
+      const certs = certsByUserFallback.get(r.participant_user_id) ?? [];
+      return {
+        ...r,
+        participant_profiles: profileByUserId.get(r.participant_user_id) ?? null,
+        academy_certificates: certs.map((c) => ({
+          levelTitle: c.levelTitle,
+          levelSubtitle: c.levelSubtitle,
+          badge_color: c.badge_color,
+        })),
+      };
+    });
+  }
+
+  if (!rows.length) return [];
 
   const participantIds = [...new Set(rows.map((r) => r.participant_user_id))];
-  const { data: profiles } = await supabase
-    .from("participant_profiles")
-    .select("user_id, full_name, bio, location_general, rate")
-    .in("user_id", participantIds);
+  const [confirmedBookingParticipantIds, certsByUser] = await Promise.all([
+    getConfirmedBookingParticipantIds(supabase, user.id, participantIds),
+    import("@/lib/academy").then((m) => m.getValidCertificatesForUsers(participantIds)),
+  ]);
 
-  const displayByUserId = new Map<string, ApplicantDisplay>();
-  (profiles ?? []).forEach((p: { user_id: string; full_name: string | null; bio: string | null; location_general: string | null; rate: number | null }) => {
-    displayByUserId.set(p.user_id, {
-      full_name: p.full_name ?? null,
-      bio: p.bio ?? null,
-      location_general: p.location_general ?? null,
-      rate: p.rate ?? null,
-    });
+  return rows.map((row) => {
+    const rawProfile = row.participant_profiles as
+      | {
+          full_name: string | null;
+          photo_url: string | null;
+          photo_visibility: string | null;
+          bio: string | null;
+          skills: unknown;
+          availability: unknown;
+          rate: number | null;
+          verified: boolean;
+          reputation_score: number | null;
+          average_rating: number | null;
+          total_ratings: number | null;
+        }
+      | {
+          full_name: string | null;
+          photo_url: string | null;
+          photo_visibility: string | null;
+          bio: string | null;
+          skills: unknown;
+          availability: unknown;
+          rate: number | null;
+          verified: boolean;
+          reputation_score: number | null;
+          average_rating: number | null;
+          total_ratings: number | null;
+        }[]
+      | null;
+
+    const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
+
+    const certs = certsByUser.get(row.participant_user_id) ?? [];
+
+    return {
+      id: row.id,
+      gig_id: row.gig_id,
+      participant_user_id: row.participant_user_id,
+      status: row.status,
+      created_at: row.created_at,
+      participant_profiles: profile
+        ? mapApplicantProfile(
+            profile,
+            confirmedBookingParticipantIds.has(row.participant_user_id)
+          )
+        : null,
+      academy_certificates: certs.map((c) => ({
+        levelTitle: c.levelTitle,
+        levelSubtitle: c.levelSubtitle,
+        badge_color: c.badge_color,
+      })),
+    };
   });
+}
 
-  return rows.map((r) => ({
-    ...r,
-    participant_display: displayByUserId.get(r.participant_user_id) ?? null,
-  })) as ApplicationWithApplicant[];
+async function getConfirmedBookingParticipantIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  merchantUserId: string,
+  participantIds: string[]
+): Promise<Set<string>> {
+  const confirmed = new Set<string>();
+  if (participantIds.length === 0) return confirmed;
+
+  const { data: bookingRows } = await supabase
+    .from("bookings")
+    .select("participant_user_id, gigs!inner(merchant_user_id)")
+    .eq("gigs.merchant_user_id", merchantUserId)
+    .in("participant_user_id", participantIds)
+    .in("status", ["confirmed", "completed"]);
+
+  for (const row of bookingRows ?? []) {
+    confirmed.add((row as { participant_user_id: string }).participant_user_id);
+  }
+  return confirmed;
 }
 
 /** Bookings for this gig with checkins (attendance log). */
@@ -386,7 +639,7 @@ export async function acceptApplication(applicationId: string) {
 
   const { data: gig } = await supabase
     .from("gigs")
-    .select("id, merchant_user_id, spots")
+    .select("id, merchant_user_id, spots, title")
     .eq("id", app.gig_id)
     .eq("merchant_user_id", user.id)
     .single();
@@ -450,6 +703,12 @@ export async function acceptApplication(applicationId: string) {
   });
   await logAudit("booking", booking.id, "created", { gig_id: app.gig_id });
 
+  await notifyBookingOffer(
+    app.participant_user_id,
+    gig.title,
+    booking.id
+  );
+
   revalidatePath(`/dashboard/merchant/gigs/${app.gig_id}`);
   revalidatePath("/dashboard/merchant/gigs");
 }
@@ -463,7 +722,7 @@ export async function rejectApplication(applicationId: string) {
 
   const { data: app } = await supabase
     .from("applications")
-    .select("id, gig_id")
+    .select("id, gig_id, participant_user_id")
     .eq("id", applicationId)
     .single();
 
@@ -471,7 +730,7 @@ export async function rejectApplication(applicationId: string) {
 
   const { data: gig } = await supabase
     .from("gigs")
-    .select("id")
+    .select("id, title")
     .eq("id", app.gig_id)
     .eq("merchant_user_id", user.id)
     .single();
@@ -489,6 +748,8 @@ export async function rejectApplication(applicationId: string) {
   if (error) throw new AuthError("Could not reject application.");
 
   await logAudit("application", applicationId, "rejected", {});
+
+  await notifyApplicationRejected(app.participant_user_id, gig.title);
 
   revalidatePath(`/dashboard/merchant/gigs/${app.gig_id}`);
   revalidatePath("/dashboard/merchant/gigs");

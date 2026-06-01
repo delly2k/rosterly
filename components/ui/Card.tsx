@@ -1,7 +1,6 @@
 import { clsx } from "clsx";
 
-const cardBase =
-  "rounded-[4px] border-[3px] border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]";
+const cardBase = "surface-card p-6";
 
 export function Card({
   children,
@@ -9,7 +8,7 @@ export function Card({
   ...rest
 }: React.ComponentProps<"div">) {
   return (
-    <div className={clsx(cardBase, "bg-white", className)} {...rest}>
+    <div className={clsx(cardBase, className)} {...rest}>
       {children}
     </div>
   );
@@ -22,7 +21,7 @@ export function CardTitle({
 }: React.ComponentProps<"h2">) {
   return (
     <h2
-      className={clsx("text-xl font-bold leading-tight text-black md:text-2xl", className)}
+      className={clsx("portal-section-title text-lg md:text-xl", className)}
       {...rest}
     >
       {children}
@@ -37,7 +36,7 @@ export function CardDescription({
 }: React.ComponentProps<"p">) {
   return (
     <p
-      className={clsx("mt-2 text-sm text-black/80 leading-relaxed", className)}
+      className={clsx("mt-2 text-sm leading-relaxed text-[var(--color-ink-muted)]", className)}
       {...rest}
     >
       {children}

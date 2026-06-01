@@ -4,7 +4,9 @@ import { requireRole } from "@/lib/auth";
 import { ROLES } from "@/lib/roles";
 import { getGigForMerchant } from "@/app/dashboard/merchant/gigs/actions";
 import { createClient } from "@/lib/auth";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { EditGigForm } from "./EditGigForm";
+import { Pencil } from "lucide-react";
 
 export default async function EditGigPage({
   params,
@@ -25,13 +27,13 @@ export default async function EditGigPage({
     .maybeSingle();
   if (booking) {
     return (
-      <div className="space-y-4">
-        <p className="text-zinc-600 dark:text-zinc-400">
+      <div className="page-bg space-y-4" style={{ padding: "32px 40px" }}>
+        <p className="text-[var(--color-ink-muted)]">
           This gig cannot be edited because a booking has been accepted.
         </p>
         <Link
           href={`/dashboard/merchant/gigs/${id}`}
-          className="text-sm font-medium text-zinc-900 underline dark:text-zinc-100"
+          className="text-sm font-medium text-[var(--color-ink)] underline"
         >
           Back to gig
         </Link>
@@ -40,18 +42,12 @@ export default async function EditGigPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <h1 className="page-title tracking-tight">
-          Edit gig
-        </h1>
-        <Link
-          href={`/dashboard/merchant/gigs/${id}`}
-          className="mt-2 inline-block text-sm font-medium text-zinc-600 dark:text-zinc-400"
-        >
-          ← Back to gig
-        </Link>
-      </div>
+    <div className="page-bg space-y-8" style={{ padding: "32px 40px" }}>
+      <PageHeader
+        icon={Pencil}
+        title="Edit gig"
+        description="Update gig details, location, and schedule"
+      />
 
       <EditGigForm gig={gig} />
     </div>

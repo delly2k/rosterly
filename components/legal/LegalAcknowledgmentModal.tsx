@@ -19,11 +19,11 @@ export function LegalAcknowledgmentModal({
       role="dialog"
       aria-labelledby="legal-modal-title"
     >
-      <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-        <h2 id="legal-modal-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="w-full max-w-md rounded-lg border border-[#E5E3DC] bg-white p-6 shadow-lg">
+        <h2 id="legal-modal-title" className="text-lg font-semibold text-zinc-900">
           {PAYMENT_DISCLOSURE_TITLE}
         </h2>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-2 text-sm text-zinc-600">
           You must accept the Payment &amp; Liability disclosure before you can
           continue. This is a one-time requirement.
         </p>
@@ -37,7 +37,7 @@ export function LegalAcknowledgmentModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+            className="rounded-md border border-[#E5E3DC] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
           >
             Close
           </button>

@@ -20,7 +20,7 @@ export function UserStatusActions({
 
   if (isAdmin) {
     return (
-      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+      <span className="text-xs text-[var(--color-ink-muted)]">
         Cannot change admin
       </span>
     );
@@ -42,14 +42,14 @@ export function UserStatusActions({
   return (
     <div className="flex items-center justify-end gap-2">
       {error && (
-        <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+        <span className="text-xs text-[var(--color-danger)]">{error}</span>
       )}
       {currentStatus !== PROFILE_STATUS.ACTIVE && (
         <button
           type="button"
           onClick={() => handleStatus(PROFILE_STATUS.ACTIVE)}
           disabled={!!loading}
-          className="rounded bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+          className="btn-admin-primary"
         >
           {loading === PROFILE_STATUS.ACTIVE ? "…" : "Activate"}
         </button>
@@ -59,7 +59,7 @@ export function UserStatusActions({
           type="button"
           onClick={() => handleStatus(PROFILE_STATUS.SUSPENDED)}
           disabled={!!loading}
-          className="rounded bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+          className="btn-admin-secondary"
         >
           {loading === PROFILE_STATUS.SUSPENDED ? "…" : "Suspend"}
         </button>
@@ -69,7 +69,7 @@ export function UserStatusActions({
           type="button"
           onClick={() => handleStatus(PROFILE_STATUS.BANNED)}
           disabled={!!loading}
-          className="rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+          className="btn-admin-danger"
         >
           {loading === PROFILE_STATUS.BANNED ? "…" : "Ban"}
         </button>
