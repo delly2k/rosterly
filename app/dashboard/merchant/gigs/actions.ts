@@ -479,7 +479,7 @@ export async function getApplicationsForGig(gigId: string): Promise<ApplicationW
       ])
     );
 
-    const certsByUserFallback = await import("@/lib/academy").then((m) =>
+    const certsByUserFallback = await import("@/lib/academy-server").then((m) =>
       m.getValidCertificatesForUsers(participantIds)
     );
 
@@ -502,7 +502,7 @@ export async function getApplicationsForGig(gigId: string): Promise<ApplicationW
   const participantIds = [...new Set(rows.map((r) => r.participant_user_id))];
   const [confirmedBookingParticipantIds, certsByUser] = await Promise.all([
     getConfirmedBookingParticipantIds(supabase, user.id, participantIds),
-    import("@/lib/academy").then((m) => m.getValidCertificatesForUsers(participantIds)),
+    import("@/lib/academy-server").then((m) => m.getValidCertificatesForUsers(participantIds)),
   ]);
 
   return rows.map((row) => {

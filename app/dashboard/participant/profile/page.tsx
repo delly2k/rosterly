@@ -8,7 +8,7 @@ import { listMyBookings } from "@/app/dashboard/participant/bookings/actions";
 import { isProfileComplete } from "@/lib/participant";
 import { calculateCompletion } from "@/lib/participant-profile-completion";
 import { ParticipantProfilePageView } from "./ParticipantProfilePageView";
-import { getValidCertificatesForUser } from "@/lib/academy";
+import { getValidCertificatesForUser } from "@/lib/academy-server";
 import { createClient } from "@/lib/auth";
 
 export default async function ParticipantProfilePage() {
